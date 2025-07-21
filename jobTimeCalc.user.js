@@ -5,8 +5,8 @@
 // @description  Calculating time to end of work day
 // @author       VP
 // @match        https://helpdesk.compassluxe.com/pa-reports-new/report/
-// @updateURL    https://raw.githubusercontent.com/DendriveVlad/CPJobTimeCalc/main/jobTimeCalc.user.js
-// @downloadURL  https://raw.githubusercontent.com/DendriveVlad/CPJobTimeCalc/main/jobTimeCalc.user.js
+// @updateURL    https://github.com/DendriveVlad/CPJobTimeCalc/raw/refs/heads/main/jobTimeCalc.user.js
+// @downloadURL  https://github.com/DendriveVlad/CPJobTimeCalc/raw/refs/heads/main/jobTimeCalc.user.js
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=tampermonkey.net
 // @grant        none
 // ==/UserScript==
