@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         workPercentageFix
 // @namespace    http://tampermonkey.net/
-// @version      25M7D22-v3
+// @version      25M7D22-v4
 // @description  Fixing percentage screan in report
 // @author       VP
 // @match        https://helpdesk.compassluxe.com/pa-reports-new/report/
@@ -11,9 +11,7 @@
 // @grant        none
 // ==/UserScript==
 
-(function() {
-    'use strict';
-    
+function runScript() {
     if (document.getElementById("Отчет по зафиксированным трудозатратам").checked) {
         const realTime = document.getElementsByClassName("current")[0].getElementsByTagName("td")[1].textContent;
         const fixTime = document.getElementsByClassName("current")[0].getElementsByTagName("td")[2].textContent;
@@ -25,4 +23,17 @@
 
         document.getElementsByClassName("current")[0].getElementsByTagName("td")[3].textContent = Math.floor(100 / (realSeconds / fixSeconds)) + "%";
     }
-})
+}
+
+// Запускаем сразу (если контент уже загружен)
+runScript();
+
+// Наблюдаем за изменениями в DOM
+const observer = new MutationObserver(function(mutations) {
+    runScript();
+});
+
+observer.observe(document.body, {
+    childList: true,    // Наблюдаем за добавлением/удалением элементов
+    subtree: true       // Проверяем все вложенные элементы
+});
