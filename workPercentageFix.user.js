@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         workPercentageFix
 // @namespace    http://tampermonkey.net/
-// @version      25M7D22-v2
+// @version      25M7D22-v3
 // @description  Fixing percentage screan in report
 // @author       VP
 // @match        https://helpdesk.compassluxe.com/pa-reports-new/report/
@@ -19,9 +19,9 @@
         const fixTime = document.getElementsByClassName("current")[0].getElementsByTagName("td")[2].textContent;
 
         let tempTimeList = realTime.split(":").map(Number);
-        const realSeconds = tempTimeList[0] * 60 * 60 + tempTimeList[1] * 60 + tempTimeList;
+        const realSeconds = tempTimeList[0] * 60 * 60 + tempTimeList[1] * 60 + tempTimeList[2];
         tempTimeList = fixTime.split(":").map(Number);
-        const fixSeconds = tempTimeList[0] * 60 * 60 + tempTimeList[1] * 60 + tempTimeList;
+        const fixSeconds = tempTimeList[0] * 60 * 60 + tempTimeList[1] * 60 + tempTimeList[2];
 
         document.getElementsByClassName("current")[0].getElementsByTagName("td")[3].textContent = Math.floor(100 / (realSeconds / fixSeconds)) + "%";
     }
