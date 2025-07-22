@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         workPercentageFix
 // @namespace    http://tampermonkey.net/
-// @version      25M7D22-v4
-// @description  Fixing percentage screan in report
+// @version      25M7D22-v5
+// @description  Fixing percentage screen in report
 // @author       VP
 // @match        https://helpdesk.compassluxe.com/pa-reports-new/report/
 // @updateURL    https://raw.githubusercontent.com/DendriveVlad/CPJobTimeCalc/main/workPercentageFix.user.js
@@ -20,8 +20,13 @@ function runScript() {
         const realSeconds = tempTimeList[0] * 60 * 60 + tempTimeList[1] * 60 + tempTimeList[2];
         tempTimeList = fixTime.split(":").map(Number);
         const fixSeconds = tempTimeList[0] * 60 * 60 + tempTimeList[1] * 60 + tempTimeList[2];
+        const timeLeft = realSeconds - fixSeconds;
 
         document.getElementsByClassName("current")[0].getElementsByTagName("td")[3].textContent = Math.floor(100 / (realSeconds / fixSeconds)) + "%";
+        if (timeLeft > 0)
+            document.getElementsByClassName("current")[0].getElementsByTagName("td")[3].textContent += " Log left: " + Math.floor(timeLeft / 28800) + "d " + Math.floor((timeLeft % 28800) / 3600) + "h " + Math.floor(((timeLeft % 28800) % 3600) / 60) + "m";
+        else 
+            document.getElementsByClassName("current")[0].getElementsByTagName("td")[3].textContent += " Loged excess: " + Math.floor(Math.abs(timeLeft) / 28800) + "d " + Math.floor((Math.abs(timeLeft) % 28800) / 3600) + "h " + Math.floor(((Math.abs(timeLeft) % 28800) % 3600) / 60) + "m";
     }
 }
 
