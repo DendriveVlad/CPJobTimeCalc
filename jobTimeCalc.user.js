@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JobTimeCalc
 // @namespace    http://tampermonkey.net/
-// @version      25M7D21-v3-test
+// @version      25M7D23-v1
 // @description  Calculating time to end of work day
 // @author       VP
 // @match        https://helpdesk.compassluxe.com/pa-reports-new/report/
@@ -13,6 +13,9 @@
 
 (function() {
     'use strict';
+
+    if (!document.getElementById("Сводный отчет").checked)
+            return;
 
     const targetSpan = document.querySelector('body > div:nth-child(3) > div:nth-child(1) > div:nth-child(1) > span:nth-child(2)');
     const targetDiv = document.querySelector('body > div:nth-child(3) > div:nth-child(1)');
@@ -28,7 +31,9 @@
     const timeOut = {
         "hours": 0,
         "minutes": 0,
-        "seconds": origTime.seconds
+        "seconds": origTime.seconds,
+        "postfix": "",
+        "prefix": ""
     };
     let isTomorrow = false;
     if ((new Date(Date.now())).getDay() === 5) { // В пятнице 7 часов
@@ -52,7 +57,7 @@
             }
             timeOut.hours = (origTime.hours + lostTimeOut.hours + Math.floor((origTime.minutes + lostTimeOut.minutes + Math.floor((origTime.seconds + lostTimeOut.seconds) / 60)) / 60)) % 24;
             timeOut.minutes = (origTime.minutes + lostTimeOut.minutes + Math.floor((origTime.seconds + lostTimeOut.seconds) / 60)) % 60;
-            timeOut.seconds = ((origTime.seconds + lostTimeOut.seconds) % 60);
+            timeOut.seconds = (origTime.seconds + lostTimeOut.seconds) % 60;
             console.info(origTime.hours + lostTimeOut.hours + Math.floor((origTime.minutes + lostTimeOut.minutes + Math.floor((origTime.seconds + lostTimeOut.seconds) / 60)) / 60));
             if (origTime.hours + lostTimeOut.hours + Math.floor((origTime.minutes + lostTimeOut.minutes + Math.floor((origTime.seconds + lostTimeOut.seconds) / 60)) / 60) > 23) {
                 isTomorrow = true;
@@ -66,6 +71,23 @@
         }
     }
 
+    // Корректировка времени, если выйти из офиса
+    if (![0, 6].includes((new Date(Date.now())).getDay()) && document.querySelector('body > div:nth-child(3) > div:nth-child(1) > div:nth-child(2) > span:nth-child(2)').textContent != "00:00:00") {
+        const fixedTimeStr = document.querySelector('body > div:nth-child(3) > div:nth-child(1) > div:nth-child(4) > span:nth-child(2)').textContent;
+        let tempTimeList = fixedTimeStr.split(":").map(Number);
+        const spendSeconds = Math.floor(Date.now() / 1000) % (24 * 60 * 60) - ((tempTimeList[0] + origTime.hours) * 60 * 60 + (tempTimeList[1] + origTime.minutes) * 60 + tempTimeList[2] + origTime.seconds - 18000);
+        const diffTime = {
+            "hours": Math.floor(spendSeconds / 3600),
+            "minutes": Math.floor((spendSeconds % 3600) / 60),
+            "seconds": Math.floor((spendSeconds % 3600) % 60)
+        }
+        timeOut.hours = (timeOut.hours + diffTime.hours + Math.floor((timeOut.minutes + diffTime.minutes + Math.floor((timeOut.seconds + diffTime.seconds) / 60)) / 60)) % 24
+        timeOut.minutes = (timeOut.minutes + diffTime.minutes + Math.floor((timeOut.seconds + diffTime.seconds) / 60)) % 60;
+        timeOut.seconds = (timeOut.seconds + diffTime.seconds) % 60;
+        timeOut.postfix = " (±5 minutes)"
+        timeOut.prefix = "~"
+    }
+
     // Настройка новых блоков
     const newBlock = document.createElement('div');
     newBlock.style.display = 'inline-flex';
@@ -75,7 +97,7 @@
     newSpan1.style.color = '#777';
     newSpan1.style.marginRight = '4px';
     const newSpan2 = document.createElement('span');
-    newSpan2.textContent = timeOut.hours + ":" + timeOut.minutes + ":" + timeOut.seconds;
+    newSpan2.textContent = timeOut.prefix + timeOut.hours + ":" + timeOut.minutes + ":" + timeOut.seconds + timeOut.postfix;
     if (isTomorrow) {
         console.info('JobTimeCalc: много работы предстоит!');
         newSpan2.textContent = "Tomorrow in " + newSpan2.textContent
