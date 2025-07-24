@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JobTimeCalc
 // @namespace    http://tampermonkey.net/
-// @version      25M7D23-v1
+// @version      25M7D24-v1
 // @description  Calculating time to end of work day
 // @author       VP
 // @match        https://helpdesk.compassluxe.com/pa-reports-new/report/
@@ -97,7 +97,16 @@
     newSpan1.style.color = '#777';
     newSpan1.style.marginRight = '4px';
     const newSpan2 = document.createElement('span');
-    newSpan2.textContent = timeOut.prefix + timeOut.hours + ":" + timeOut.minutes + ":" + timeOut.seconds + timeOut.postfix;
+    newSpan2.textContent = timeOut.prefix;
+    if (timeOut.hours < 10)
+        newSpan2.textContent += "0"
+    newSpan2.textContent += timeOut.hours + ":"
+    if (timeOut.minutes < 10)
+        newSpan2.textContent += "0"
+    newSpan2.textContent += timeOut.minutes + ":"
+    if (timeOut.seconds < 10)
+        newSpan2.textContent += "0"
+    newSpan2.textContent += timeOut.seconds + ":" + timeOut.postfix
     if (isTomorrow) {
         console.info('JobTimeCalc: много работы предстоит!');
         newSpan2.textContent = "Tomorrow in " + newSpan2.textContent
