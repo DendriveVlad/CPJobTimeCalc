@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JobTimeCalc
 // @namespace    http://tampermonkey.net/
-// @version      25M7D24-v1
+// @version      25M7D24-v2
 // @description  Calculating time to end of work day
 // @author       VP
 // @match        https://helpdesk.compassluxe.com/pa-reports-new/report/
