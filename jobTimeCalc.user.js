@@ -106,7 +106,7 @@
     newSpan2.textContent += timeOut.minutes + ":"
     if (timeOut.seconds < 10)
         newSpan2.textContent += "0"
-    newSpan2.textContent += timeOut.seconds + ":" + timeOut.postfix
+    newSpan2.textContent += timeOut.seconds + timeOut.postfix
     if (isTomorrow) {
         console.info('JobTimeCalc: много работы предстоит!');
         newSpan2.textContent = "Tomorrow in " + newSpan2.textContent
