@@ -112,6 +112,7 @@
         "seconds": Number(overTimeStr.split(":")[2])
     }
     newSpan2.addEventListener("click", function(ev) {
+        if ([0, 6].includes((new Date(Date.now())).getDay())) return;
         if (withOverTime) {
             timeOut.hours += overTime.hours;
             timeOut.minutes += overTime.minutes;
