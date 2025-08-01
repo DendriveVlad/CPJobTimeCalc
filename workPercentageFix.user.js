@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         workPercentageFix
 // @namespace    http://tampermonkey.net/
-// @version      25M7D22-v5
+// @version      25M8D1-v1
 // @description  Fixing percentage screen in report
 // @author       VP
 // @match        https://helpdesk.compassluxe.com/pa-reports-new/report/
