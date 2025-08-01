@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JobTimeCalc
 // @namespace    http://tampermonkey.net/
-// @version      25M8D1-v1
+// @version      25M8D1-v2
 // @description  Calculating time to end of work day
 // @author       VP
 // @match        https://helpdesk.compassluxe.com/pa-reports-new/report/
@@ -99,62 +99,74 @@
     const newSpan2 = document.createElement('span');
     setupTime(newSpan2, timeOut, isTomorrow);
     newSpan2.style.fontWeight = '500';
+    
+    if (![0, 6].includes((new Date(Date.now())).getDay())) {
+        newSpan2.style.transition = 'background .5s';
+        newSpan2.style.borderRadius = '7px';
+        newSpan2.title = 'Отобразить время с учётом (недо/пере)работки';
 
-    let withOverTime = false; // Переключатель времени при наличии (пере/недо)работки
-    let overTimeStr = document.getElementsByClassName("userRow")[0].getElementsByTagName("td")[7].textContent;
-    if (overTimeStr.includes("-")) {
-        withOverTime = true;
-        overTimeStr = overTimeStr.replace("-", "")
-    }
-    const overTime = {
-        "hours": Number(overTimeStr.split(":")[0]),
-        "minutes": Number(overTimeStr.split(":")[1]),
-        "seconds": Number(overTimeStr.split(":")[2])
-    }
-    newSpan2.addEventListener("click", function(ev) {
-        if ([0, 6].includes((new Date(Date.now())).getDay())) return;
-        if (withOverTime) {
-            timeOut.hours += overTime.hours;
-            timeOut.minutes += overTime.minutes;
-            timeOut.seconds += overTime.seconds;
-            if (timeOut.seconds > 60) {
-                timeOut.minutes++;
-                timeOut.seconds %= 60;
-            }
-            if (timeOut.minutes > 60) {
-                timeOut.hours++;
-                timeOut.minutes %= 60;
-            }
-            if (timeOut.hours > 24) {
-                isTomorrow = true
-                timeOut.hours %= 24;
-            }
-        } else {
-            timeOut.hours -= overTime.hours;
-            timeOut.minutes -= overTime.minutes;
-            timeOut.seconds -= overTime.seconds;
-            if (timeOut.seconds < 0) {
-                timeOut.minutes--;
-                timeOut.seconds = 60 + timeOut.seconds;
-            }
-            if (timeOut.minutes < 0) {
-                timeOut.hours--;
-                timeOut.minutes = 60 + timeOut.minutes;
-            }
-            if (timeOut.hours < 0) {
-                if (isTomorrow) {
-                    isTomorrow = false
-                    timeOut.hours = 24 + timeOut.hours;
-                } else {
-                    timeOut.hours = 0;
-                    timeOut.minutes = 0;
-                    timeOut.seconds = 0;
+        let withOverTime = false; // Переключатель времени при наличии (пере/недо)работки
+        let overTimeStr = document.getElementsByClassName("userRow")[0].getElementsByTagName("td")[7].textContent;
+        if (overTimeStr.includes("-")) {
+            withOverTime = true;
+            overTimeStr = overTimeStr.replace("-", "")
+        }
+        const overTime = {
+            "hours": Number(overTimeStr.split(":")[0]),
+            "minutes": Number(overTimeStr.split(":")[1]),
+            "seconds": Number(overTimeStr.split(":")[2])
+        }
+        newSpan2.addEventListener("mouseenter", () => {
+            newSpan2.style.background = "#C7C7C7";
+            newSpan2.style.cursor = "default";
+        });
+        newSpan2.addEventListener("mouseleave", () => {
+            newSpan2.style.background = "";
+        });
+        newSpan2.addEventListener("click", () => {
+            if (withOverTime) {
+                timeOut.hours += overTime.hours;
+                timeOut.minutes += overTime.minutes;
+                timeOut.seconds += overTime.seconds;
+                if (timeOut.seconds > 60) {
+                    timeOut.minutes++;
+                    timeOut.seconds %= 60;
+                }
+                if (timeOut.minutes > 60) {
+                    timeOut.hours++;
+                    timeOut.minutes %= 60;
+                }
+                if (timeOut.hours > 24) {
+                    isTomorrow = true
+                    timeOut.hours %= 24;
+                }
+            } else {
+                timeOut.hours -= overTime.hours;
+                timeOut.minutes -= overTime.minutes;
+                timeOut.seconds -= overTime.seconds;
+                if (timeOut.seconds < 0) {
+                    timeOut.minutes--;
+                    timeOut.seconds = 60 + timeOut.seconds;
+                }
+                if (timeOut.minutes < 0) {
+                    timeOut.hours--;
+                    timeOut.minutes = 60 + timeOut.minutes;
+                }
+                if (timeOut.hours < 0) {
+                    if (isTomorrow) {
+                        isTomorrow = false
+                        timeOut.hours = 24 + timeOut.hours;
+                    } else {
+                        timeOut.hours = 0;
+                        timeOut.minutes = 0;
+                        timeOut.seconds = 0;
+                    }
                 }
             }
-        }
-        setupTime(newSpan2, timeOut, isTomorrow);
-        withOverTime = !withOverTime;
-    })
+            setupTime(newSpan2, timeOut, isTomorrow);
+            withOverTime = !withOverTime;
+        });
+    }
 
     // Добавление блоков в HTML
     newBlock.appendChild(newSpan1);
