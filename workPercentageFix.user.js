@@ -21,8 +21,9 @@ function runScript() {
         tempTimeList = fixTime.split(":").map(Number);
         const fixSeconds = tempTimeList[0] * 60 * 60 + tempTimeList[1] * 60 + tempTimeList[2];
         const timeLeft = realSeconds - fixSeconds;
-
-        document.getElementsByClassName("current")[0].getElementsByTagName("td")[3].textContent = Math.floor(100 / (realSeconds / fixSeconds)) + "%";
+        if (fixSeconds === 0) {
+            document.getElementsByClassName("current")[0].getElementsByTagName("td")[3].textContent = "0%";
+        } else document.getElementsByClassName("current")[0].getElementsByTagName("td")[3].textContent = Math.floor(100 / (realSeconds / fixSeconds)) + "%";
         if (timeLeft > 0)
             document.getElementsByClassName("current")[0].getElementsByTagName("td")[3].textContent += " Log left: " + Math.floor(timeLeft / 28800) + "d " + Math.floor((timeLeft % 28800) / 3600) + "h " + Math.floor(((timeLeft % 28800) % 3600) / 60) + "m";
         else 

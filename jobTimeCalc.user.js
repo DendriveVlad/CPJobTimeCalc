@@ -97,24 +97,85 @@
     newSpan1.style.color = '#777';
     newSpan1.style.marginRight = '4px';
     const newSpan2 = document.createElement('span');
-    newSpan2.textContent = timeOut.prefix;
-    if (timeOut.hours < 10)
-        newSpan2.textContent += "0"
-    newSpan2.textContent += timeOut.hours + ":"
-    if (timeOut.minutes < 10)
-        newSpan2.textContent += "0"
-    newSpan2.textContent += timeOut.minutes + ":"
-    if (timeOut.seconds < 10)
-        newSpan2.textContent += "0"
-    newSpan2.textContent += timeOut.seconds + timeOut.postfix
-    if (isTomorrow) {
-        console.info('JobTimeCalc: много работы предстоит!');
-        newSpan2.textContent = "Tomorrow in " + newSpan2.textContent
-    }
+    setupTime(newSpan2, timeOut, isTomorrow);
     newSpan2.style.fontWeight = '500';
+
+    let withOverTime = false; // Переключатель времени при наличии (пере/недо)работки
+    let overTimeStr = document.getElementsByClassName("userRow")[0].getElementsByTagName("td")[7].textContent;
+    if (overTimeStr.includes("-")) {
+        withOverTime = true;
+        overTimeStr = overTimeStr.replace("-", "")
+    }
+    const overTime = {
+        "hours": Number(overTimeStr.split(":")[0]),
+        "minutes": Number(overTimeStr.split(":")[1]),
+        "seconds": Number(overTimeStr.split(":")[2])
+    }
+    newSpan2.addEventListener("click", function(ev) {
+        if (withOverTime) {
+            timeOut.hours += overTime.hours;
+            timeOut.minutes += overTime.minutes;
+            timeOut.seconds += overTime.seconds;
+            if (timeOut.seconds > 60) {
+                timeOut.minutes++;
+                timeOut.seconds %= 60;
+            }
+            if (timeOut.minutes > 60) {
+                timeOut.hours++;
+                timeOut.minutes %= 60;
+            }
+            if (timeOut.hours > 24) {
+                isTomorrow = true
+                timeOut.hours %= 24;
+            }
+        } else {
+            timeOut.hours -= overTime.hours;
+            timeOut.minutes -= overTime.minutes;
+            timeOut.seconds -= overTime.seconds;
+            if (timeOut.seconds < 0) {
+                timeOut.minutes--;
+                timeOut.seconds = 60 + timeOut.seconds;
+            }
+            if (timeOut.minutes < 0) {
+                timeOut.hours--;
+                timeOut.minutes = 60 + timeOut.minutes;
+            }
+            if (timeOut.hours < 0) {
+                if (isTomorrow) {
+                    isTomorrow = false
+                    timeOut.hours = 24 + timeOut.hours;
+                } else {
+                    timeOut.hours = 0;
+                    timeOut.minutes = 0;
+                    timeOut.seconds = 0;
+                }
+            }
+        }
+        setupTime(newSpan2, timeOut, isTomorrow);
+        withOverTime = !withOverTime;
+    })
 
     // Добавление блоков в HTML
     newBlock.appendChild(newSpan1);
     newBlock.appendChild(newSpan2);
     targetDiv.appendChild(newBlock);
 })();
+
+function setupTime (block, timeOut, isTomorrow) {
+    block.textContent = timeOut.prefix;
+    if (timeOut.hours < 10)
+    if (timeOut.hours < 10)
+    if (timeOut.hours < 10)
+        block.textContent += "0"
+    block.textContent += timeOut.hours + ":"
+    if (timeOut.minutes < 10)
+        block.textContent += "0"
+    block.textContent += timeOut.minutes + ":"
+    if (timeOut.seconds < 10)
+        block.textContent += "0"
+    block.textContent += timeOut.seconds + timeOut.postfix
+    if (isTomorrow) {
+        console.info('JobTimeCalc: много работы предстоит!');
+        block.textContent = "Tomorrow in " + block.textContent
+    }
+}
