@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JobTimeCalc
 // @namespace    http://tampermonkey.net/
-// @version      25M8D1-v2
+// @version      25M8D4-v1
 // @description  Calculating time to end of work day
 // @author       VP
 // @match        https://helpdesk.compassluxe.com/pa-reports-new/report/
@@ -101,7 +101,7 @@
     newSpan2.style.fontWeight = '500';
     
     if (![0, 6].includes((new Date(Date.now())).getDay())) {
-        newSpan2.style.transition = 'background .5s';
+        newSpan2.style.transition = 'background .2718s';
         newSpan2.style.borderRadius = '7px';
         newSpan2.title = 'Отобразить время с учётом (недо/пере)работки';
 
@@ -163,6 +163,10 @@
                     }
                 }
             }
+            if (newSpan2.title.includes("с")) 
+                newSpan2.title = 'Отобразить время без учёта (недо/пере)работки';
+            else newSpan2.title = 'Отобразить время с учётом (недо/пере)работки';
+
             setupTime(newSpan2, timeOut, isTomorrow);
             withOverTime = !withOverTime;
         });
