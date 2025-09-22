@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JobTimeCalc
 // @namespace    http://tampermonkey.net/
-// @version      25M8D4-v1
+// @version      25M9D22-v1
 // @description  Calculating time to end of work day
 // @author       VP
 // @match        https://helpdesk.compassluxe.com/pa-reports-new/report/
@@ -17,8 +17,8 @@
     if (!document.getElementById("Сводный отчет").checked)
             return;
 
-    const targetSpan = document.querySelector('body > div:nth-child(3) > div:nth-child(1) > div:nth-child(1) > span:nth-child(2)');
-    const targetDiv = document.querySelector('body > div:nth-child(3) > div:nth-child(1)');
+    const targetSpan = document.querySelector('body > div:nth-child(4) > div:nth-child(1) > div:nth-child(1) > span:nth-child(2)');
+    const targetDiv = document.querySelector('body > div:nth-child(4) > div:nth-child(1)');
     if (!targetSpan) {
         console.info('JobTimeCalc: Элемент не найден!');
         return;
@@ -72,8 +72,8 @@
     }
 
     // Корректировка времени, если выйти из офиса
-    if (![0, 6].includes((new Date(Date.now())).getDay()) && document.querySelector('body > div:nth-child(3) > div:nth-child(1) > div:nth-child(2) > span:nth-child(2)').textContent != "00:00:00") {
-        const fixedTimeStr = document.querySelector('body > div:nth-child(3) > div:nth-child(1) > div:nth-child(4) > span:nth-child(2)').textContent;
+    if (![0, 6].includes((new Date(Date.now())).getDay()) && document.querySelector('body > div:nth-child(4) > div:nth-child(1) > div:nth-child(2) > span:nth-child(2)').textContent != "00:00:00") {
+        const fixedTimeStr = document.querySelector('body > div:nth-child(4) > div:nth-child(1) > div:nth-child(4) > span:nth-child(2)').textContent;
         let tempTimeList = fixedTimeStr.split(":").map(Number);
         const spendSeconds = Math.floor(Date.now() / 1000) % (24 * 60 * 60) - ((tempTimeList[0] + origTime.hours) * 60 * 60 + (tempTimeList[1] + origTime.minutes) * 60 + tempTimeList[2] + origTime.seconds - 18000);
         const diffTime = {
@@ -107,7 +107,7 @@
 
         let withOverTime = false; // Переключатель времени при наличии (пере/недо)работки
         let overTimeStr = document.getElementsByClassName("userRow")[0].getElementsByTagName("td")[7].textContent;
-        if (overTimeStr.includes("-")) {
+        while (overTimeStr.includes("-")) {
             withOverTime = true;
             overTimeStr = overTimeStr.replace("-", "")
         }
