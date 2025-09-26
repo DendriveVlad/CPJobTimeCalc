@@ -23,6 +23,7 @@
         console.info('JobTimeCalc: Элемент не найден!');
         return;
     }
+
     const origTime = {
         "hours": Number(targetSpan.textContent.split(":")[0]),
         "minutes": Number(targetSpan.textContent.split(":")[1]),
@@ -35,6 +36,9 @@
         "postfix": "",
         "prefix": ""
     };
+
+    let isHolydays = [0, 6].includes((new Date(Date.now())).getDay());
+
     let isTomorrow = false;
     if ((new Date(Date.now())).getDay() === 5) { // В пятнице 7 часов
         timeOut.hours = (origTime.hours + 7) % 24;
@@ -42,7 +46,7 @@
         if (origTime.hours + 7 > 23) {
             isTomorrow = true;
         }
-    } else if ([0, 6].includes((new Date(Date.now())).getDay())) { // С учётом недоработки, если прийти в выходные
+    } else if (isHolydays) { // С учётом недоработки, если прийти в выходные
         let lostTime = document.getElementsByClassName("userRow")[0].getElementsByTagName("td")[7].textContent;
         if (!lostTime.includes("-")) {
             timeOut.hours = origTime.hours;
@@ -72,7 +76,7 @@
     }
 
     // Корректировка времени, если выйти из офиса
-    if (![0, 6].includes((new Date(Date.now())).getDay()) && document.querySelector('body > div:nth-child(4) > div:nth-child(1) > div:nth-child(2) > span:nth-child(2)').textContent != "00:00:00") {
+    if (!isHolydays && document.querySelector('body > div:nth-child(4) > div:nth-child(1) > div:nth-child(2) > span:nth-child(2)').textContent != "00:00:00") {  // Last exit block
         const fixedTimeStr = document.querySelector('body > div:nth-child(4) > div:nth-child(1) > div:nth-child(4) > span:nth-child(2)').textContent;
         let tempTimeList = fixedTimeStr.split(":").map(Number);
         const spendSeconds = Math.floor(Date.now() / 1000) % (24 * 60 * 60) - ((tempTimeList[0] + origTime.hours) * 60 * 60 + (tempTimeList[1] + origTime.minutes) * 60 + tempTimeList[2] + origTime.seconds - 18000);
@@ -100,7 +104,7 @@
     setupTime(newSpan2, timeOut, isTomorrow);
     newSpan2.style.fontWeight = '500';
     
-    if (![0, 6].includes((new Date(Date.now())).getDay())) {
+    if (!isHolydays) {
         newSpan2.style.transition = 'background .2718s';
         newSpan2.style.borderRadius = '7px';
         newSpan2.title = 'Отобразить время с учётом (недо/пере)работки';
