@@ -38,9 +38,9 @@
     };
     let currentDay = (new Date(Date.now())).getDay();
     let isHolydays = [0, 6].includes(currentDay);
-
     let isTomorrow = false;
-    if ((currentDay === 5) { // В пятнице 7 часов
+
+    if (currentDay === 5) { // В пятнице 7 часов
         timeOut.hours = (origTime.hours + 7) % 24;
         timeOut.minutes = origTime.minutes;
         if (origTime.hours + 7 > 23) {
