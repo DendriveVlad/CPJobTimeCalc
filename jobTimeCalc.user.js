@@ -146,16 +146,16 @@
                 timeOut.seconds -= overTime.seconds;
                 if (timeOut.seconds < 0) {
                     timeOut.minutes--;
-                    timeOut.seconds = 60 + timeOut.seconds;
+                    timeOut.seconds = (60 + timeOut.seconds) % 60;
                 }
                 if (timeOut.minutes < 0) {
                     timeOut.hours--;
-                    timeOut.minutes = 60 + timeOut.minutes;
+                    timeOut.minutes = (60 + timeOut.minutes) % 60;
                 }
                 if (timeOut.hours < 0) {
                     if (isTomorrow) {
                         isTomorrow = false
-                        timeOut.hours = 24 + timeOut.hours;
+                        timeOut.hours = (24 + timeOut.hours) % 24;
                     } else {
                         timeOut.hours = 0;
                         timeOut.minutes = 0;
@@ -180,8 +180,6 @@
 
 function setupTime (block, timeOut, isTomorrow) {
     block.textContent = timeOut.prefix;
-    if (timeOut.hours < 10)
-    if (timeOut.hours < 10)
     if (timeOut.hours < 10)
         block.textContent += "0"
     block.textContent += timeOut.hours + ":"
