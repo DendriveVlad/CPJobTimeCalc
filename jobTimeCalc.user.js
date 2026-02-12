@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         JobTimeCalc
 // @namespace    http://tampermonkey.net/
-// @version      25M9D26-v1
+// @version      26M2D12-beta-v1
 // @description  Calculating time to end of work day
-// @author       VP
+// @author       VKK
 // @match        https://helpdesk.compassluxe.com/pa-reports-new/report/
 // @updateURL    https://raw.githubusercontent.com/DendriveVlad/CPJobTimeCalc/main/jobTimeCalc.user.js
 // @downloadURL  https://raw.githubusercontent.com/DendriveVlad/CPJobTimeCalc/main/jobTimeCalc.user.js
@@ -11,190 +11,377 @@
 // @grant        none
 // ==/UserScript==
 
-(function() {
-    'use strict';
+// blocks from html
+let workBlock;
+let enterTime;
+let overTime;
+let fixedTime;
 
-    if (!document.getElementById("Сводный отчет").checked)
+// new blocks (TO - TimeOut)
+let TOBlock;
+let TOTitle;
+let TOTime;
+let TOSettings
+
+// Inner time vars
+const jsEnterTime = {
+    "hours": 0,
+    "minutes": 0,
+    "seconds": 0
+};
+const jsTimeOut = {
+    "hours": 0,
+    "minutes": 0,
+    "seconds": 0,
+    "postfix": "",
+    "prefix": ""
+};
+const jsOverTime = {
+    "negative": 1,
+    "hours": 0,
+    "minutes": 0,
+    "seconds": 0
+};
+const jsFixedTime = {
+    "hours": 0,
+    "minutes": 0,
+    "seconds": 0
+};
+const jsCurDayWorkTime = {
+    "hours": 0,
+    "minutes": 0
+};
+const jsRealFixedTime = {
+    "hours": 0,
+    "minutes": 0,
+    "seconds": 0
+};
+
+// helping vars
+let currentDay;
+let isHoliday = false;
+let isShortDay = false;
+let isTomorrow = false;
+let isOverTimeApplied = false;  // time displays using overtime or not
+let wasExit = false;
+let minimumExceeded = false;
+
+
+function main() {
+    // Main function of the script
+    try {
+        if (!initBlocks() || !initParams()) {
+            console.error('JobTimeCalc: Run Error; Stopping execution');
             return;
-
-    const targetSpan = document.querySelector('body > div:nth-child(4) > div:nth-child(1) > div:nth-child(1) > span:nth-child(2)');
-    const targetDiv = document.querySelector('body > div:nth-child(4) > div:nth-child(1)');
-    if (!targetSpan) {
-        console.info('JobTimeCalc: Элемент не найден!');
-        return;
-    }
-
-    const origTime = {
-        "hours": Number(targetSpan.textContent.split(":")[0]),
-        "minutes": Number(targetSpan.textContent.split(":")[1]),
-        "seconds": Number(targetSpan.textContent.split(":")[2])
-    }
-    const timeOut = {
-        "hours": 0,
-        "minutes": 0,
-        "seconds": origTime.seconds,
-        "postfix": "",
-        "prefix": ""
-    };
-    let currentDay = (new Date(Date.now())).getDay();
-    let isHolydays = [0, 6].includes(currentDay);
-    let isTomorrow = false;
-
-    if (currentDay === 5) { // В пятнице 7 часов
-        timeOut.hours = (origTime.hours + 7) % 24;
-        timeOut.minutes = origTime.minutes;
-        if (origTime.hours + 7 > 23) {
-            isTomorrow = true;
         }
-    } else if (isHolydays) { // С учётом недоработки, если прийти в выходные
-        let lostTime = document.getElementsByClassName("userRow")[0].getElementsByTagName("td")[7].textContent;
-        if (!lostTime.includes("-")) {
-            timeOut.hours = origTime.hours;
-            timeOut.minutes = origTime.minutes;
-            timeOut.seconds = origTime.seconds;
-        } else {
-            lostTime = lostTime.replace("-", "");
-            const lostTimeOut = {
-                "hours": Number(lostTime.split(":")[0]),
-                "minutes": Number(lostTime.split(":")[1]),
-                "seconds": Number(lostTime.split(":")[2])
-            }
-            timeOut.hours = (origTime.hours + lostTimeOut.hours + Math.floor((origTime.minutes + lostTimeOut.minutes + Math.floor((origTime.seconds + lostTimeOut.seconds) / 60)) / 60)) % 24;
-            timeOut.minutes = (origTime.minutes + lostTimeOut.minutes + Math.floor((origTime.seconds + lostTimeOut.seconds) / 60)) % 60;
-            timeOut.seconds = (origTime.seconds + lostTimeOut.seconds) % 60;
-            console.info(origTime.hours + lostTimeOut.hours + Math.floor((origTime.minutes + lostTimeOut.minutes + Math.floor((origTime.seconds + lostTimeOut.seconds) / 60)) / 60));
-            if (origTime.hours + lostTimeOut.hours + Math.floor((origTime.minutes + lostTimeOut.minutes + Math.floor((origTime.seconds + lostTimeOut.seconds) / 60)) / 60) > 23) {
-                isTomorrow = true;
-            }
-        }
-    } else {
-        timeOut.hours = (origTime.hours + 8 + Math.floor((origTime.minutes + 15) / 60)) % 24;
-        timeOut.minutes = (origTime.minutes + 15) % 60;
-        if ((origTime.hours + 8 + Math.floor((origTime.minutes + 15) / 60)) > 23) {
-            isTomorrow = true;
-        }
-    }
-
-    // Корректировка времени, если выйти из офиса
-    if (!isHolydays && document.querySelector('body > div:nth-child(4) > div:nth-child(1) > div:nth-child(2) > span:nth-child(2)').textContent != "00:00:00") {  // Last exit block
-        const fixedTimeStr = document.querySelector('body > div:nth-child(4) > div:nth-child(1) > div:nth-child(4) > span:nth-child(2)').textContent;
-        let tempTimeList = fixedTimeStr.split(":").map(Number);
-        const spendSeconds = Math.floor(Date.now() / 1000) % (24 * 60 * 60) - ((tempTimeList[0] + origTime.hours) * 60 * 60 + (tempTimeList[1] + origTime.minutes) * 60 + tempTimeList[2] + origTime.seconds - 18000);
-        const diffTime = {
-            "hours": Math.floor(spendSeconds / 3600),
-            "minutes": Math.floor((spendSeconds % 3600) / 60),
-            "seconds": Math.floor((spendSeconds % 3600) % 60)
-        }
-        timeOut.hours = (timeOut.hours + diffTime.hours + Math.floor((timeOut.minutes + diffTime.minutes + Math.floor((timeOut.seconds + diffTime.seconds) / 60)) / 60)) % 24
-        timeOut.minutes = (timeOut.minutes + diffTime.minutes + Math.floor((timeOut.seconds + diffTime.seconds) / 60)) % 60;
-        timeOut.seconds = (timeOut.seconds + diffTime.seconds) % 60;
-        timeOut.postfix = " (±5 minutes)"
-        timeOut.prefix = "~"
-    }
-
-    // Настройка новых блоков
-    const newBlock = document.createElement('div');
-    newBlock.style.display = 'inline-flex';
-    newBlock.style.alignItems = 'center';
-    const newSpan1 = document.createElement('span');
-    newSpan1.textContent = 'Calc time to leave:';
-    newSpan1.style.color = '#777';
-    newSpan1.style.marginRight = '4px';
-    const newSpan2 = document.createElement('span');
-    setupTime(newSpan2, timeOut, isTomorrow);
-    newSpan2.style.fontWeight = '500';
-    
-    if (!isHolydays) {
-        newSpan2.style.transition = 'background .2718s';
-        newSpan2.style.borderRadius = '7px';
-        newSpan2.title = 'Отобразить время с учётом (недо/пере)работки';
-
-        let withOverTime = false; // Переключатель времени при наличии (пере/недо)работки
-        let overTimeStr = document.getElementsByClassName("userRow")[0].getElementsByTagName("td")[7].textContent;
-        while (overTimeStr.includes("-")) {
-            withOverTime = true;
-            overTimeStr = overTimeStr.replace("-", "")
-        }
-        const overTime = {
-            "hours": Number(overTimeStr.split(":")[0]),
-            "minutes": Number(overTimeStr.split(":")[1]),
-            "seconds": Number(overTimeStr.split(":")[2])
-        }
-        newSpan2.addEventListener("mouseenter", () => {
-            newSpan2.style.background = "#C7C7C7";
-            newSpan2.style.cursor = "default";
-        });
-        newSpan2.addEventListener("mouseleave", () => {
-            newSpan2.style.background = "";
-        });
-        newSpan2.addEventListener("click", () => {
-            if (withOverTime) {
-                timeOut.hours += overTime.hours;
-                timeOut.minutes += overTime.minutes;
-                timeOut.seconds += overTime.seconds;
-                if (timeOut.seconds >= 60) {
-                    timeOut.minutes++;
-                    timeOut.seconds %= 60;
-                }
-                if (timeOut.minutes >= 60) {
-                    timeOut.hours++;
-                    timeOut.minutes %= 60;
-                }
-                if (timeOut.hours >= 24) {
-                    isTomorrow = true
-                    timeOut.hours %= 24;
-                }
-            } else {
-                timeOut.hours -= overTime.hours;
-                timeOut.minutes -= overTime.minutes;
-                timeOut.seconds -= overTime.seconds;
-                if (timeOut.seconds < 0) {
-                    timeOut.minutes--;
-                    timeOut.seconds += 60;
-                }
-                if (timeOut.minutes < 0) {
-                    timeOut.hours--;
-                    timeOut.minutes += 60;
-                }
-                if (timeOut.hours < 0) {
-                    if (isTomorrow) {
-                        isTomorrow = false
-                        timeOut.hours += 24;
-                    } else {
-                        timeOut.hours = 0;
-                        timeOut.minutes = 0;
-                        timeOut.seconds = 0;
-                    }
-                }
-            }
-            if (newSpan2.title.includes("с")) 
-                newSpan2.title = 'Отобразить время без учёта (недо/пере)работки';
-            else newSpan2.title = 'Отобразить время с учётом (недо/пере)работки';
-
-            setupTime(newSpan2, timeOut, isTomorrow);
-            withOverTime = !withOverTime;
-        });
-    }
-
-    // Добавление блоков в HTML
-    newBlock.appendChild(newSpan1);
-    newBlock.appendChild(newSpan2);
-    targetDiv.appendChild(newBlock);
-})();
-
-function setupTime (block, timeOut, isTomorrow) {
-    block.textContent = timeOut.prefix;
-    if (timeOut.hours < 10)
-        block.textContent += "0"
-    block.textContent += timeOut.hours + ":"
-    if (timeOut.minutes < 10)
-        block.textContent += "0"
-    block.textContent += timeOut.minutes + ":"
-    if (timeOut.seconds < 10)
-        block.textContent += "0"
-    block.textContent += timeOut.seconds + timeOut.postfix
-    if (isTomorrow) {
-        console.info('JobTimeCalc: много работы предстоит!');
-        block.textContent = "Tomorrow in " + block.textContent
+        prepareBlocks();
+        isHoliday ? calcHoliday() : calcWorkDay();
+        setupTimeBlock();
+    } catch (e) {
+        console.error('JobTimeCalc: Unexcepted error: ' + e);
     }
 }
+
+function initBlocks() {
+    // initializing html blocs vars
+    workBlock = document.querySelector('body > div:nth-child(4) > div:nth-child(1)');
+    if (workBlock === null) {
+        console.warn('JobTimeCalc: Cannot find the Time Control Block');
+        return false;
+    }
+
+    enterTime = document.querySelector('body > div:nth-child(4) > div:nth-child(1) > div:nth-child(1) > span:nth-child(2)');
+    if (enterTime === null) {
+        console.warn('JobTimeCalc: Cannot find First enter Time');
+        return false;
+    }
+
+    const lastExitTime = document.querySelector('body > div:nth-child(4) > div:nth-child(1) > div:nth-child(2) > span:nth-child(2)');
+    if (lastExitTime === null) {
+        console.warn('JobTimeCalc: Cannot find Last Exit Time');
+    }
+    wasExit = lastExitTime.textContent !== "00:00:00";
+
+    overTime = document.getElementsByClassName("userRow")[0].getElementsByTagName("td")[7];
+    if (overTime === null) {
+        console.warn('JobTimeCalc: Cannot find Over Time Block');
+    }
+
+    fixedTime = document.querySelector('body > div:nth-child(4) > div:nth-child(1) > div:nth-child(4) > span:nth-child(2)');
+    if (fixedTime === null) {
+        console.warn('JobTimeCalc: Cannot find Fix Time');
+    }
+    return true
+}
+
+function initParams() {
+    // initializing other vars
+    let curDate = (new Date(Date.now()));
+    currentDay = curDate.getDay();
+    let localDayTimeSettings = localStorage.getItem(String(currentDay));
+    if (localDayTimeSettings === null) {
+        console.info('JobTimeCalc: Local storage not set up');
+        localStorage.setItem("0", "0:0");
+        localStorage.setItem("1", "8:15");
+        localStorage.setItem("2", "8:15");
+        localStorage.setItem("3", "8:15");
+        localStorage.setItem("4", "8:15");
+        localStorage.setItem("5", "7:0");
+        localStorage.setItem("6", "0:0");
+
+        localDayTimeSettings = localStorage.getItem(String(currentDay));
+    }
+    jsCurDayWorkTime.hours = Number(localDayTimeSettings.split(":")[0]);
+    jsCurDayWorkTime.minutes = Number(localDayTimeSettings.split(":")[1]);
+
+    if (jsCurDayWorkTime.hours === 0 && jsCurDayWorkTime.minutes === 0) {
+        isHoliday = true;
+    } else try {
+        let rq = getDayInfo("https://xmlcalendar.ru/data/ru/" + curDate.getFullYear() + "/calendar.json", true);
+        if (rq === null) {
+            let rq = getDayInfo("https://isdayoff.ru/" +
+                String(curDate.getFullYear()) +
+                String(curDate.getMonth() < 9 ? 0 : "") + String(curDate.getMonth() + 1) +
+                String(curDate.getDate() < 9 ? 0 : "") + String(curDate.getDate()));
+            if (rq === 100) {
+                console.warn('JobTimeCalc: Incorrect Data');
+            }
+            if ((rq === null || rq === 100) && currentDay in [0, 6]) {
+                isHoliday = true
+            } else {
+                isHoliday = rq === 1;
+            }
+        } else {
+            let holidays = rq["months"][2]["days"].split(",");
+            isHoliday = String(curDate.getHours()) in holidays || String(curDate.getHours()) + "+" in holidays;
+            isShortDay = String(curDate.getHours()) + "*" in holidays
+        }
+    } catch (error) {
+        console.warn("JobTimeCalc: " + error);
+        if (currentDay in [0, 6]) {
+            isHoliday = true;
+        }
+    }
+
+    try {
+        jsEnterTime.hours = Number(enterTime.textContent.split(":")[0]);
+        jsEnterTime.minutes = Number(enterTime.textContent.split(":")[1]);
+        jsEnterTime.seconds = Number(enterTime.textContent.split(":")[2]);
+    } catch (e) {
+        console.warn('JobTimeCalc: Cannot parse enter time' + e);
+        return false;
+    }
+
+    try {
+        if (overTime.style.color === "rgb(255, 0, 0)") {
+            jsOverTime.negative = -1;
+        }
+
+        jsOverTime.hours = Math.abs(Number(overTime.textContent.split(":")[0]));
+        jsOverTime.minutes = Number(overTime.textContent.split(":")[1]);
+        jsOverTime.seconds = Number(overTime.textContent.split(":")[2]);
+    } catch (e) {
+        console.warn('JobTimeCalc: Cannot parse over time\n' + e);
+    }
+
+    try {
+        jsFixedTime.hours = Number(fixedTime.textContent.split(":")[0]);
+        jsFixedTime.minutes = Number(fixedTime.textContent.split(":")[1]);
+        jsFixedTime.seconds = Number(fixedTime.textContent.split(":")[2]);
+    } catch (e) {
+        console.warn('JobTimeCalc: Cannot parse fixed time\n' + e);
+        if (wasExit) {
+            console.error('JobTimeCalc: Cannot calculate time if there is no fixed time\n');
+            return false;
+        }
+    }
+
+    let curTimeInSeconds =  Math.floor(Date.now() / 1000) % (24 * 60 * 60);
+    jsRealFixedTime.hours = Math.floor(curTimeInSeconds / 60 / 60);
+    jsRealFixedTime.minutes = Math.floor(curTimeInSeconds / 60 % 60);
+    jsRealFixedTime.seconds = curTimeInSeconds % 60;
+
+    return true;
+}
+
+function prepareBlocks() {
+    TOBlock = document.createElement('div');
+        TOBlock.style.display = 'inline-flex';
+        TOBlock.style.alignItems = 'center';
+
+    TOTitle = document.createElement('span');
+        TOTitle.textContent = 'Calc time to leave:';
+        TOTitle.style.color = '#777';
+        TOTitle.style.marginRight = '4px';
+
+    TOTime = document.createElement('span');
+        TOTime.style.fontWeight = '500';
+        if (!isHoliday || (jsTimeOut.hours !== 0 && jsTimeOut.minutes !== 0 && jsTimeOut.seconds !== 0)) {
+            TOTime.style.transition = 'background .2718s';
+            TOTime.style.borderRadius = '7px';
+            setupDefaultMoseEvent(TOTime, recalcTime)
+        }
+
+    TOSettings = document.createElement('span');
+        TOSettings.textContent = "⚙️";
+        TOSettings.title = "Настроить учёт времени";
+        TOSettings.style.fontWeight = '500';
+        TOSettings.style.transition = 'background .2718s';
+        TOSettings.style.borderRadius = '7px';
+        setupDefaultMoseEvent(TOSettings, settingsMenu);
+
+    TOBlock.appendChild(TOTitle);
+    TOBlock.appendChild(TOTime);
+    TOBlock.appendChild(TOSettings);
+    workBlock.appendChild(TOBlock);
+}
+
+function calcWorkDay() {
+    jsTimeOut.seconds = jsEnterTime.seconds;
+    jsTimeOut.minutes = (jsEnterTime.minutes + jsCurDayWorkTime.minutes) % 60;
+    jsTimeOut.hours = (jsEnterTime.hours + jsCurDayWorkTime.hours + Math.floor((jsEnterTime.minutes + jsCurDayWorkTime.minutes) / 60));
+    if (wasExit) {
+        /// * Минимальное отклонение от реального времени 11 минут 15 секунд, а максимальное 13 минут 20 секунд (Поэтому Fixed Time + 11:15)
+        let lTimeWentOut = {  // Difference between expected time and fixed time
+            "hours": jsRealFixedTime.hours - jsFixedTime.hours,
+            "minutes": jsRealFixedTime.minutes - jsFixedTime.minutes - 11, // *
+            "seconds": jsRealFixedTime.seconds - jsFixedTime.seconds - 15  // *
+        }
+        if (lTimeWentOut.seconds < 0) {
+            lTimeWentOut.seconds += 60;
+            lTimeWentOut.minutes--;
+        }
+        if (lTimeWentOut.minutes < 0) {
+            lTimeWentOut.minutes += 60;
+            lTimeWentOut.hours--;
+        }
+
+        jsTimeOut.hours += lTimeWentOut.hours;
+        jsTimeOut.minutes += lTimeWentOut.minutes;
+        jsTimeOut.seconds += lTimeWentOut.seconds;
+        jsTimeOut.postfix = " (Время приблизительное из-за особенностей подсчёта фиксированного времени)"
+        jsTimeOut.prefix = "~"
+    }
+}
+
+function calcHoliday() {
+    if (jsOverTime.negative === 1) {
+        jsTimeOut.hours += jsEnterTime.hours;
+        jsTimeOut.minutes += jsEnterTime.minutes;
+        jsTimeOut.seconds += jsEnterTime.seconds;
+    } else {
+        jsTimeOut.seconds = (jsEnterTime.seconds + jsOverTime.seconds) % 60;
+        jsTimeOut.minutes = (jsEnterTime.minutes + jsOverTime.minutes + Math.floor(jsEnterTime.seconds + jsOverTime.seconds) / 60) % 60;
+        jsTimeOut.hours = (jsEnterTime.hours + jsOverTime.hours + Math.floor((jsEnterTime.minutes + jsOverTime.minutes + (jsEnterTime.seconds + jsOverTime.seconds) / 60) / 60));
+    }
+}
+
+function setupTimeBlock() {
+    TOTime.textContent = jsTimeOut.prefix;
+    if (jsTimeOut.hours < 10)
+        TOTime.textContent += "0"
+    TOTime.textContent += jsTimeOut.hours + ":"
+    if (jsTimeOut.minutes < 10)
+        TOTime.textContent += "0"
+    TOTime.textContent += jsTimeOut.minutes + ":"
+    if (jsTimeOut.seconds < 10)
+        TOTime.textContent += "0"
+    TOTime.textContent += jsTimeOut.seconds + jsTimeOut.postfix
+    TOTime.title = isOverTimeApplied ? 'Отобразить время без учёта (недо/пере)работки' :
+                                       'Отобразить время с учётом (недо/пере)работки';
+    if (isTomorrow) {
+        console.info('JobTimeCalc: много работы предстоит!');
+        TOTime.textContent = "Tomorrow in " + TOTime.textContent
+    }
+}
+
+function recalcTime() {
+    if (minimumExceeded) {
+        calcWorkDay();
+        minimumExceeded = false;
+    } else {
+        jsTimeOut.hours += jsOverTime.hours * -1 * jsOverTime.negative * (isOverTimeApplied ? -1 : 1);
+        jsTimeOut.minutes += jsOverTime.minutes * -1 * jsOverTime.negative * (isOverTimeApplied ? -1 : 1);
+        jsTimeOut.seconds += jsOverTime.seconds * -1 * jsOverTime.negative * (isOverTimeApplied ? -1 : 1);
+        if (jsTimeOut.seconds >= 60) {
+            jsTimeOut.minutes++;
+            jsTimeOut.seconds %= 60;
+        } else if (jsTimeOut.seconds < 0) {
+            jsTimeOut.minutes--;
+            jsTimeOut.seconds += 60;
+        }
+        if (jsTimeOut.minutes >= 60) {
+            jsTimeOut.hours++;
+            jsTimeOut.minutes %= 60;
+        } else if (jsTimeOut.minutes < 0) {
+            jsTimeOut.hours--;
+            jsTimeOut.minutes += 60;
+        }
+        if (jsTimeOut.hours >= 24) {
+            isTomorrow = true;
+            jsTimeOut.hours %= 24;
+        } else if (jsTimeOut.hours < 0) {
+            isTomorrow = false;
+            jsTimeOut.hours += 24;
+        } else {
+            isTomorrow = false;
+        }
+        if (jsCurDayWorkTime.hours >= 4 && !isTomorrow && jsTimeOut.hours - jsEnterTime.hours < 4) {
+            jsTimeOut.hours = jsEnterTime.hours + 4;
+            jsTimeOut.minutes = jsEnterTime.minutes;
+            jsTimeOut.seconds = jsEnterTime.seconds;
+
+            minimumExceeded = true;
+        }
+    }
+    isOverTimeApplied = !isOverTimeApplied;
+
+    setupTimeBlock()
+}
+
+function settingsMenu() {
+    alert("In Dev...")
+}
+
+function setupDefaultMoseEvent(block, clickFunc = null) {
+    block.addEventListener("mouseenter", () => {
+        block.style.background = "#C7C7C7";
+        block.style.cursor = "default";
+    });
+
+    block.addEventListener("mouseleave", () => {
+        block.style.background = "";
+    });
+
+    if (clickFunc !== null) {
+        block.addEventListener("click", clickFunc);
+    }
+}
+
+async function getDayInfo(url, isJson = false) {
+    try {
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        if (isJson) {
+            return response.json();
+        }
+        return await response.text();
+    } catch (error) {
+        console.warn("JobTimeCalc: Cannot get access to " + url + "\n" + error);
+        return null;
+    }
+}
+
+main();  // Run script
+
+const observer = new MutationObserver(function() {
+    main();
+});
+//
+// observer.observe(document.body, {
+//     childList: true,    // Наблюдаем за добавлением/удалением элементов
+//     subtree: true       // Проверяем все вложенные элементы
+// });
