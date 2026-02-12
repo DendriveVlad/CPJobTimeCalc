@@ -1,14 +1,14 @@
 // ==UserScript==
 // @name         JobTimeCalc
 // @namespace    http://tampermonkey.net/
-// @version      26M2D12-beta-v1
+// @version      26M2D12-beta-v2
 // @description  Calculating time to end of work day
 // @author       VKK
 // @match        https://helpdesk.compassluxe.com/pa-reports-new/report/
 // @updateURL    https://raw.githubusercontent.com/DendriveVlad/CPJobTimeCalc/main/jobTimeCalc.user.js
 // @downloadURL  https://raw.githubusercontent.com/DendriveVlad/CPJobTimeCalc/main/jobTimeCalc.user.js
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=tampermonkey.net
-// @grant        none
+// @grant        GM_xmlhttpRequest
 // ==/UserScript==
 
 // blocks from html
@@ -118,21 +118,23 @@ function initParams() {
     // initializing other vars
     let curDate = (new Date(Date.now()));
     currentDay = curDate.getDay();
-    let localDayTimeSettings = localStorage.getItem(String(currentDay));
+    let localDayTimeSettings = JSON.parse(localStorage.getItem("JTC_DailyTimeSettings"));
     if (localDayTimeSettings === null) {
         console.info('JobTimeCalc: Local storage not set up');
-        localStorage.setItem("0", "0:0");
-        localStorage.setItem("1", "8:15");
-        localStorage.setItem("2", "8:15");
-        localStorage.setItem("3", "8:15");
-        localStorage.setItem("4", "8:15");
-        localStorage.setItem("5", "7:0");
-        localStorage.setItem("6", "0:0");
+        localStorage.setItem("JTC_DailyTimeSettings", JSON.stringify({
+                0: {"hours": 0, "minutes": 0},
+                1: {"hours": 8, "minutes": 15},
+                2: {"hours": 8, "minutes": 15},
+                3: {"hours": 8, "minutes": 15},
+                4: {"hours": 8, "minutes": 15},
+                5: {"hours": 7, "minutes": 0},
+                6: {"hours": 0, "minutes": 0},
+            }));
 
-        localDayTimeSettings = localStorage.getItem(String(currentDay));
+        localDayTimeSettings = JSON.parse(localStorage.getItem("JTC_DailyTimeSettings"));
     }
-    jsCurDayWorkTime.hours = Number(localDayTimeSettings.split(":")[0]);
-    jsCurDayWorkTime.minutes = Number(localDayTimeSettings.split(":")[1]);
+    jsCurDayWorkTime.hours = localDayTimeSettings[currentDay]["hours"];
+    jsCurDayWorkTime.minutes = localDayTimeSettings[currentDay]["minutes"];
 
     if (jsCurDayWorkTime.hours === 0 && jsCurDayWorkTime.minutes === 0) {
         isHoliday = true;
@@ -197,9 +199,17 @@ function initParams() {
     }
 
     let curTimeInSeconds =  Math.floor(Date.now() / 1000) % (24 * 60 * 60);
-    jsRealFixedTime.hours = Math.floor(curTimeInSeconds / 60 / 60);
-    jsRealFixedTime.minutes = Math.floor(curTimeInSeconds / 60 % 60);
-    jsRealFixedTime.seconds = curTimeInSeconds % 60;
+    jsRealFixedTime.hours = (Math.floor(curTimeInSeconds / 60 / 60) + 5) - jsEnterTime.hours;  // ВРЕМЯ В ЕКТ(+5)
+    jsRealFixedTime.minutes = Math.floor(curTimeInSeconds / 60 % 60) - jsEnterTime.minutes;
+    jsRealFixedTime.seconds = curTimeInSeconds % 60 - jsEnterTime.seconds;
+    if (jsRealFixedTime.seconds < 0) {
+        jsRealFixedTime.minutes--;
+        jsRealFixedTime.seconds += 60;
+    }
+    if (jsRealFixedTime.minutes < 0) {
+        jsRealFixedTime.hours--;
+        jsRealFixedTime.minutes += 60;
+    }
 
     return true;
 }
@@ -259,7 +269,19 @@ function calcWorkDay() {
         jsTimeOut.hours += lTimeWentOut.hours;
         jsTimeOut.minutes += lTimeWentOut.minutes;
         jsTimeOut.seconds += lTimeWentOut.seconds;
-        jsTimeOut.postfix = " (Время приблизительное из-за особенностей подсчёта фиксированного времени)"
+        if (jsTimeOut.seconds >= 60) {
+            jsTimeOut.minutes++;
+            jsTimeOut.seconds %= 60;
+        }
+        if (jsTimeOut.minutes >= 60) {
+            jsTimeOut.hours++;
+            jsTimeOut.minutes %= 60;
+        }
+        if (jsTimeOut.hours >= 24) {
+            isTomorrow = true;
+            jsTimeOut.hours %= 24;
+        }
+        jsTimeOut.postfix = " (Погрешность -2 минуты)"
         jsTimeOut.prefix = "~"
     }
 }
@@ -375,13 +397,4 @@ async function getDayInfo(url, isJson = false) {
     }
 }
 
-main();  // Run script
-
-const observer = new MutationObserver(function() {
-    main();
-});
-//
-// observer.observe(document.body, {
-//     childList: true,    // Наблюдаем за добавлением/удалением элементов
-//     subtree: true       // Проверяем все вложенные элементы
-// });
+main();
