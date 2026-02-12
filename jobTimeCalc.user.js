@@ -1,14 +1,14 @@
 // ==UserScript==
 // @name         JobTimeCalc
 // @namespace    http://tampermonkey.net/
-// @version      26M2D12-beta-v2
+// @version      26M2D12-beta-v3
 // @description  Calculating time to end of work day
 // @author       VKK
 // @match        https://helpdesk.compassluxe.com/pa-reports-new/report/
 // @updateURL    https://raw.githubusercontent.com/DendriveVlad/CPJobTimeCalc/main/jobTimeCalc.user.js
 // @downloadURL  https://raw.githubusercontent.com/DendriveVlad/CPJobTimeCalc/main/jobTimeCalc.user.js
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=tampermonkey.net
-// @grant        GM_xmlhttpRequest
+// @grant
 // ==/UserScript==
 
 // blocks from html
@@ -129,6 +129,7 @@ function initParams() {
                 4: {"hours": 8, "minutes": 15},
                 5: {"hours": 7, "minutes": 0},
                 6: {"hours": 0, "minutes": 0},
+                "Settings": {"AllowShortDay": false}
             }));
 
         localDayTimeSettings = JSON.parse(localStorage.getItem("JTC_DailyTimeSettings"));
@@ -139,24 +140,15 @@ function initParams() {
     if (jsCurDayWorkTime.hours === 0 && jsCurDayWorkTime.minutes === 0) {
         isHoliday = true;
     } else try {
-        let rq = getDayInfo("https://xmlcalendar.ru/data/ru/" + curDate.getFullYear() + "/calendar.json", true);
-        if (rq === null) {
-            let rq = getDayInfo("https://isdayoff.ru/" +
-                String(curDate.getFullYear()) +
-                String(curDate.getMonth() < 9 ? 0 : "") + String(curDate.getMonth() + 1) +
-                String(curDate.getDate() < 9 ? 0 : "") + String(curDate.getDate()));
-            if (rq === 100) {
-                console.warn('JobTimeCalc: Incorrect Data');
-            }
-            if ((rq === null || rq === 100) && currentDay in [0, 6]) {
-                isHoliday = true
-            } else {
-                isHoliday = rq === 1;
-            }
+        let rs = getDayInfo("https://isdayoff.ru/today?pre=1");
+        if (rs === 100) {
+            console.warn('JobTimeCalc: Incorrect Data');
+        }
+        if ((rs === null || rs === 100) && currentDay in [0, 6]) {
+            isHoliday = true
         } else {
-            let holidays = rq["months"][2]["days"].split(",");
-            isHoliday = String(curDate.getHours()) in holidays || String(curDate.getHours()) + "+" in holidays;
-            isShortDay = String(curDate.getHours()) + "*" in holidays
+            isHoliday = rs === 1;
+            isShortDay = rs === 2; // TODO: Пока что не используется, потому что не всем это актуально
         }
     } catch (error) {
         console.warn("JobTimeCalc: " + error);
