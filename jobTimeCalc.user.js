@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JobTimeCalc
 // @namespace    http://tampermonkey.net/
-// @version      26M2D12-beta-v3
+// @version      26M2D14-beta-v1
 // @description  Calculating time to end of work day
 // @author       VKK
 // @match        https://helpdesk.compassluxe.com/pa-reports-new/report/
@@ -285,7 +285,7 @@ function calcHoliday() {
         jsTimeOut.seconds += jsEnterTime.seconds;
     } else {
         jsTimeOut.seconds = (jsEnterTime.seconds + jsOverTime.seconds) % 60;
-        jsTimeOut.minutes = (jsEnterTime.minutes + jsOverTime.minutes + Math.floor(jsEnterTime.seconds + jsOverTime.seconds) / 60) % 60;
+        jsTimeOut.minutes = (jsEnterTime.minutes + jsOverTime.minutes + Math.floor((jsEnterTime.seconds + jsOverTime.seconds) / 60)) % 60;
         jsTimeOut.hours = (jsEnterTime.hours + jsOverTime.hours + Math.floor((jsEnterTime.minutes + jsOverTime.minutes + (jsEnterTime.seconds + jsOverTime.seconds) / 60) / 60));
     }
 }
