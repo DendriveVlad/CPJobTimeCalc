@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JobTimeCalc
 // @namespace    http://tampermonkey.net/
-// @version      26M4D01-beta-v1
+// @version      26M4D03-beta-v1
 // @description  Calculating time to end of work day
 // @author       VKK
 // @match        https://helpdesk.compassluxe.com/pa-reports-new/report/
@@ -68,6 +68,56 @@
     let wasExit = false;
     let minimumExceeded = false;
 
+    // analyze
+    function analyze_delta_fix() {
+        const raw_data = localStorage.getItem("JTC_AnalyzeFixedTime");
+        const data = raw_data !== null ? JSON.parse(raw_data) : {};
+
+        const current_date = (new Date()).toLocaleDateString('ru', {
+            day: '2-digit',
+            month: '2-digit',
+            year: '2-digit'
+        });
+        const current_time = (new Date()).toLocaleTimeString('ru', {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+
+        if (data[current_date] === undefined) {
+            data[current_date] = {}
+        }
+
+        if (data[current_date][current_time] !== undefined) {
+            return;
+        }
+
+        const FixDelta = {
+            "hours": 0,
+            "minutes": 0,
+            "seconds": 0
+        }
+
+        FixDelta.seconds = jsRealFixedTime.seconds - jsFixedTime.seconds;
+        if (FixDelta.seconds < 0) {
+            FixDelta.minutes--;
+            FixDelta.seconds = 60 + FixDelta.seconds;
+        }
+        FixDelta.minutes = jsRealFixedTime.minutes - jsFixedTime.minutes + FixDelta.minutes;
+        if (FixDelta.minutes < 0) {
+            FixDelta.hours--;
+            FixDelta.minutes = 60 + FixDelta.minutes;
+        }
+        FixDelta.hours = jsRealFixedTime.hours - jsFixedTime.hours + FixDelta.hours;
+
+        data[current_date][current_time] = {
+            "PortalFix": fixedTime.textContent,
+            "RealFix": `${jsRealFixedTime.hours < 10 ? "0" : ""}${jsRealFixedTime.hours}:${jsRealFixedTime.minutes < 10 ? "0" : ""}${jsRealFixedTime.minutes}:${jsRealFixedTime.seconds < 10 ? "0" : ""}${jsRealFixedTime.seconds}`,
+            "FixDelta": `${FixDelta.hours < 10 ? "0" : ""}${FixDelta.hours}:${FixDelta.minutes < 10 ? "0" : ""}${FixDelta.minutes}:${FixDelta.seconds < 10 ? "0" : ""}${FixDelta.seconds}`
+        }
+        localStorage.setItem("JTC_AnalyzeFixedTime", JSON.stringify(data));
+        // localStorage.getItem("JTC_AnalyzeFixedTime")
+    }
+// 4:02:25 - 3:58:28 = 1:-56:-3
 
     function main() {
         // Main function of the script
@@ -79,6 +129,10 @@
             prepareBlocks();
             isHoliday ? calcHoliday() : calcWorkDay();
             setupTimeBlock();
+            // To disable collecting any statistic use in console: localStorage.setItem("JTC_AllowCollectStats", "1")
+            if (localStorage.getItem("JTC_DisableCollectStats") !== "1") {
+                analyze_delta_fix();
+            }
         } catch (e) {
             console.error('JobTimeCalc: Unexcepted error: ' + e);
         }
