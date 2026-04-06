@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JobTimeCalc
 // @namespace    http://tampermonkey.net/
-// @version      26M4D03-beta-v1
+// @version      26M4D06-beta-v1
 // @description  Calculating time to end of work day
 // @author       VKK
 // @match        https://helpdesk.compassluxe.com/pa-reports-new/report/
@@ -68,6 +68,28 @@
     let wasExit = false;
     let minimumExceeded = false;
 
+    function collect_analytics() {
+        analyze_delta_fix();
+    }
+
+    function clean_analytics() {
+        let analytics = {
+            "JTC_AnalyzeFixedTime": 0
+        };  // if key == 1: should be cleaned
+        let key;
+        if (localStorage.getItem("JTC_DisableCollectStats") === "1") {
+            for (key in analytics) {
+                localStorage.removeItem(key);
+            }
+            return;
+        }
+        for (key in analytics) {
+            if (analytics[key] === 1) {
+                localStorage.removeItem(key);
+            }
+        }
+    }
+
     // analyze
     function analyze_delta_fix() {
         const raw_data = localStorage.getItem("JTC_AnalyzeFixedTime");
@@ -115,7 +137,7 @@
             "FixDelta": `${FixDelta.hours < 10 ? "0" : ""}${FixDelta.hours}:${FixDelta.minutes < 10 ? "0" : ""}${FixDelta.minutes}:${FixDelta.seconds < 10 ? "0" : ""}${FixDelta.seconds}`
         }
         localStorage.setItem("JTC_AnalyzeFixedTime", JSON.stringify(data));
-        // localStorage.getItem("JTC_AnalyzeFixedTime")
+        // JSON.parse(localStorage.getItem("JTC_AnalyzeFixedTime"))
     }
 // 4:02:25 - 3:58:28 = 1:-56:-3
 
@@ -129,10 +151,11 @@
             prepareBlocks();
             isHoliday ? calcHoliday() : calcWorkDay();
             setupTimeBlock();
-            // To disable collecting any statistic use in console: localStorage.setItem("JTC_AllowCollectStats", "1")
+            // To disable collecting any statistic use in console: localStorage.setItem("JTC_DisableCollectStats", "1")
             if (localStorage.getItem("JTC_DisableCollectStats") !== "1") {
-                analyze_delta_fix();
+                collect_analytics();
             }
+            clean_analytics();
         } catch (e) {
             console.error('JobTimeCalc: Unexcepted error: ' + e);
         }
