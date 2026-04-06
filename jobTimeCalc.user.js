@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JobTimeCalc
 // @namespace    http://tampermonkey.net/
-// @version      26M4D06-beta-v1
+// @version      26M4D06-beta-v2
 // @description  Calculating time to end of work day
 // @author       VKK
 // @match        https://helpdesk.compassluxe.com/pa-reports-new/report/
@@ -139,7 +139,6 @@
         localStorage.setItem("JTC_AnalyzeFixedTime", JSON.stringify(data));
         // JSON.parse(localStorage.getItem("JTC_AnalyzeFixedTime"))
     }
-// 4:02:25 - 3:58:28 = 1:-56:-3
 
     function main() {
         // Main function of the script
@@ -345,11 +344,11 @@
         jsTimeOut.minutes = (jsEnterTime.minutes + jsCurDayWorkTime.minutes) % 60;
         jsTimeOut.hours = (jsEnterTime.hours + jsCurDayWorkTime.hours + Math.floor((jsEnterTime.minutes + jsCurDayWorkTime.minutes) / 60));
         if (wasExit) {
-            /// * Минимальное отклонение от реального времени 11 минут 15 секунд, а максимальное 13 минут 20 секунд (Поэтому Fixed Time + 11:15)
+            /// * Минимальное отклонение от реального времени 11 минут 15 секунд, а максимальное 13 минут 20 секунд (Поэтому Fixed Time + 11:15) ((Видимо, уже не актуально. Логика внутри портала поменялась))
             let lTimeWentOut = {  // Difference between expected time and fixed time
                 "hours": jsRealFixedTime.hours - jsFixedTime.hours,
-                "minutes": jsRealFixedTime.minutes - jsFixedTime.minutes - 11, // *
-                "seconds": jsRealFixedTime.seconds - jsFixedTime.seconds - 15  // *
+                "minutes": jsRealFixedTime.minutes - jsFixedTime.minutes,
+                "seconds": jsRealFixedTime.seconds - jsFixedTime.seconds
             }
             if (lTimeWentOut.seconds < 0) {
                 lTimeWentOut.seconds += 60;
