@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JobTimeCalc
 // @namespace    http://tampermonkey.net/
-// @version      26M4D06-beta-v2
+// @version      26M4D06-beta-v3
 // @description  Calculating time to end of work day
 // @author       VKK
 // @match        https://helpdesk.compassluxe.com/pa-reports-new/report/
@@ -69,12 +69,12 @@
     let minimumExceeded = false;
 
     function collect_analytics() {
-        analyze_delta_fix();
+        // analyze_delta_fix();
     }
 
     function clean_analytics() {
         let analytics = {
-            "JTC_AnalyzeFixedTime": 0
+            "JTC_AnalyzeFixedTime": 1
         };  // if key == 1: should be cleaned
         let key;
         if (localStorage.getItem("JTC_DisableCollectStats") === "1") {
@@ -304,6 +304,32 @@
             jsRealFixedTime.minutes += 60;
         }
 
+        if (wasExit) {
+            // Сохраняем последнее зафиксированное время, чтобы часы показывали одно значение даже после обновления страницы
+            // Если время сохранено и совпадает с тем, что на портале — используем его, иначе сохраняем новое
+            let savedTime;
+            if (sessionStorage.getItem("JTC_LastFixedTime") !== null) {
+                savedTime = JSON.parse(sessionStorage.getItem("JTC_LastFixedTime"));
+                if (savedTime.Portal !== fixedTime.textContent) {
+                    savedTime.Portal = "";
+                }
+            } else {
+                savedTime = {
+                    "Portal": "",
+                    "Real": {},
+                };
+            }
+            if (savedTime.Portal === "") {
+                savedTime.Portal = fixedTime.textContent;
+                savedTime.Real = jsRealFixedTime;
+                sessionStorage.setItem("JTC_LastFixedTime", JSON.stringify(savedTime));
+            } else {
+                jsRealFixedTime.hours = savedTime.Real.hours;
+                jsRealFixedTime.minutes = savedTime.Real.minutes;
+                jsRealFixedTime.seconds = savedTime.Real.seconds;
+            }
+        }
+
         return true;
     }
 
@@ -374,8 +400,8 @@
                 isTomorrow = true;
                 jsTimeOut.hours %= 24;
             }
-            jsTimeOut.postfix = " (Погрешность -2 минуты)"
-            jsTimeOut.prefix = "~"
+            // jsTimeOut.postfix = " (Погрешность -2 минуты)"
+            // jsTimeOut.prefix = "~"
         }
     }
 
