@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JobTimeCalc
 // @namespace    http://tampermonkey.net/
-// @version      26M4D06-beta-v3
+// @version      26M4D30-beta-v1
 // @description  Calculating time to end of work day
 // @author       VKK
 // @match        https://helpdesk.compassluxe.com/pa-reports-new/report/
@@ -243,9 +243,9 @@
                 isHoliday = true
             } else {
                 if (!jsCurDayWorkTime.NoHolidays) {
-                    isHoliday = rs === 1;
+                    isHoliday = rs === '1';
                 }
-                isShortDay = rs === 2;
+                isShortDay = rs === '2';
             }
         } catch (error) {
             console.warn("JobTimeCalc: " + error);
