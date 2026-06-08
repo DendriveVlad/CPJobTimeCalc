@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JobTimeCalc
 // @namespace    http://tampermonkey.net/
-// @version      26M4D30-beta-v1
+// @version      26M6D8-beta-v1
 // @description  Calculating time to end of work day
 // @author       VKK
 // @match        https://helpdesk.compassluxe.com/pa-reports-new/report/
@@ -140,15 +140,62 @@
         // JSON.parse(localStorage.getItem("JTC_AnalyzeFixedTime"))
     }
 
-    function main() {
+    function showLoadingSpinner() {
+        // Если уже есть — не добавляем повторно
+        if (document.getElementById("JTC_Loader")) return;
+
+        // Создаём стили
+        const style = document.createElement("style");
+        style.id = "JTC_LoaderStyles";
+        style.textContent = `
+        @keyframes JTC_Spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #JTC_Loader {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 99999;
+            transition: opacity 0.3s;
+        }
+        #JTC_Loader .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            width: 15px;
+            height: 15px;
+            animation: JTC_Spin 1.2s linear infinite;
+        }`;
+        workBlock.appendChild(style);
+
+        // Создаём элемент
+        const loader = document.createElement("div");
+        loader.id = "JTC_Loader";
+        loader.innerHTML = '<div class="loader"></div>';
+        workBlock.appendChild(loader);
+    }
+
+    function removeLoadingSpinner() {
+        const el = document.getElementById("JTC_Loader");
+        if (el) {
+            el.style.opacity = "0";
+            setTimeout(() => {
+                el.remove();
+            }, 100);
+        }
+    }
+
+    async function main() {
         // Main function of the script
         try {
-            if (!initBlocks() || !initParams()) {
+            if (!await initBlocks() || !await initParams()) {
                 console.error('JobTimeCalc: Run Error; Stopping execution');
                 return;
             }
             prepareBlocks();
             isHoliday ? calcHoliday() : calcWorkDay();
+            removeLoadingSpinner();
             setupTimeBlock();
             // To disable collecting any statistic use in console: localStorage.setItem("JTC_DisableCollectStats", "1")
             if (localStorage.getItem("JTC_DisableCollectStats") !== "1") {
@@ -160,14 +207,14 @@
         }
     }
 
-    function initBlocks() {
+    async function initBlocks() {
         // initializing html blocs vars
         workBlock = document.querySelector('body > div:nth-child(4) > div:nth-child(2)');
         if (workBlock === null) {
             console.warn('JobTimeCalc: Cannot find the Time Control Block');
             return false;
         }
-
+        showLoadingSpinner();
         enterTime = workBlock.querySelector('div:nth-child(1) > span:nth-child(2)');
         if (enterTime === null) {
             console.warn('JobTimeCalc: Cannot find First enter Time');
@@ -193,7 +240,7 @@
         return true
     }
 
-    function initParams() {
+    async function initParams() {
         // initializing other vars
         let curDate = (new Date(Date.now()));
         currentDay = curDate.getDay();
@@ -235,11 +282,13 @@
         if (jsCurDayWorkTime.hours === 0 && jsCurDayWorkTime.minutes === 0) {
             isHoliday = true;
         } else try {
-            let rs = getDayInfo("https://isdayoff.ru/today?pre=1");
-            if (rs === 100) {
+            let rs = await getDayInfo("https://isdayoff.ru/today?pre=1");
+            console.log(rs);
+
+            if (rs === '100') {
                 console.warn('JobTimeCalc: Incorrect Data');
             }
-            if (!jsCurDayWorkTime.NoHolidays && (rs === null || rs === 100) && currentDay in [0, 6]) {
+            if (!jsCurDayWorkTime.NoHolidays && (rs === null || rs === '100') && [0, 6].includes(currentDay)) {
                 isHoliday = true
             } else {
                 if (!jsCurDayWorkTime.NoHolidays) {
@@ -249,7 +298,7 @@
             }
         } catch (error) {
             console.warn("JobTimeCalc: " + error);
-            if (!jsCurDayWorkTime.NoHolidays && currentDay in [0, 6]) {
+            if (!jsCurDayWorkTime.NoHolidays && [0, 6].includes(currentDay)) {
                 isHoliday = true;
             }
         }
@@ -913,8 +962,9 @@
             }
             if (isJson) {
                 return response.json();
+            } else {
+                return response.text();
             }
-            return await response.text();
         } catch (error) {
             console.warn("JobTimeCalc: Cannot get access to " + url + "\n" + error);
             return null;
@@ -922,8 +972,10 @@
     }
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', main);
+        document.addEventListener('DOMContentLoaded', () => {
+            main().catch(e => console.error('Init failed:', e));
+        });
     } else {
-        main();
+        main().catch(e => console.error('Init failed:', e));
     }
 })();
