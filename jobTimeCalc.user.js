@@ -69,12 +69,12 @@
     let minimumExceeded = false;
 
     function collect_analytics() {
-        // analyze_delta_fix();
+        analyze_delta_fix();
     }
 
     function clean_analytics() {
         let analytics = {
-            "JTC_AnalyzeFixedTime": 1
+            "JTC_AnalyzeFixedTime": 0
         };  // if key == 1: should be cleaned
         let key;
         if (localStorage.getItem("JTC_DisableCollectStats") === "1") {
@@ -283,7 +283,6 @@
             isHoliday = true;
         } else try {
             let rs = await getDayInfo("https://isdayoff.ru/today?pre=1");
-            console.log(rs);
 
             if (rs === '100') {
                 console.warn('JobTimeCalc: Incorrect Data');
