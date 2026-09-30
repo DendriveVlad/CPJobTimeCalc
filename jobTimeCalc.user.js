@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JobTimeCalc
 // @namespace    http://tampermonkey.net/
-// @version      26M6D8-beta-v1
+// @version      26M8D30-beta-v1
 // @description  Calculating time to end of work day
 // @author       VKK
 // @match        https://helpdesk.compassluxe.com/pa-reports-new/report/
@@ -515,7 +515,8 @@
             } else {
                 isTomorrow = false;
             }
-            if (jsCurDayWorkTime.hours >= 4 && !isTomorrow && jsTimeOut.hours - jsEnterTime.hours < 4) {
+            if (jsCurDayWorkTime.hours >= 4 && !isTomorrow &&
+                (jsTimeOut.hours - jsEnterTime.hours < 4 || jsTimeOut.hours - jsEnterTime.hours === 4 && (jsTimeOut.minutes < jsEnterTime.minutes || jsTimeOut.minutes === jsEnterTime.minutes && jsTimeOut.seconds < jsEnterTime.seconds))) {
                 jsTimeOut.hours = jsEnterTime.hours + 4;
                 jsTimeOut.minutes = jsEnterTime.minutes;
                 jsTimeOut.seconds = jsEnterTime.seconds;
