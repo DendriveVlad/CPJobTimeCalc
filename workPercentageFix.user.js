@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         workPercentageFix
 // @namespace    http://tampermonkey.net/
-// @version      25M8D1-v1
+// @version      26M9D30-v1
 // @description  Fixing percentage screen in report
 // @author       VP
 // @match        https://helpdesk.compassluxe.com/pa-reports-new/report/
@@ -13,21 +13,42 @@
 
 function runScript() {
     if (document.getElementById("Отчет по зафиксированным трудозатратам").checked) {
-        const realTime = document.getElementsByClassName("current")[0].getElementsByTagName("td")[1].textContent;
-        const fixTime = document.getElementsByClassName("current")[0].getElementsByTagName("td")[2].textContent;
+        const workBlock = document.querySelector('body > div:nth-child(4) > div:nth-child(2) > table');
+        const realTime = workBlock.getElementsByClassName("current")[0].getElementsByTagName("td")[3].textContent;
+        const fixTime = workBlock.getElementsByClassName("current")[0].getElementsByTagName("td")[4].textContent;
 
         let tempTimeList = realTime.split(":").map(Number);
         const realSeconds = tempTimeList[0] * 60 * 60 + tempTimeList[1] * 60 + tempTimeList[2];
         tempTimeList = fixTime.split(":").map(Number);
         const fixSeconds = tempTimeList[0] * 60 * 60 + tempTimeList[1] * 60 + tempTimeList[2];
         const timeLeft = realSeconds - fixSeconds;
-        if (fixSeconds === 0) {
-            document.getElementsByClassName("current")[0].getElementsByTagName("td")[3].textContent = "0%";
-        } else document.getElementsByClassName("current")[0].getElementsByTagName("td")[3].textContent = Math.floor(100 / (realSeconds / fixSeconds)) + "%";
+        // if (fixSeconds === 0) {
+        //     document.getElementsByClassName("current")[0].getElementsByTagName("td")[3].textContent = "0%";
+        // } else document.getElementsByClassName("current")[0].getElementsByTagName("td")[3].textContent = Math.floor(100 / (realSeconds / fixSeconds)) + "%";
+        const logLastTitle = workBlock.getElementsByTagName("thead")[0].getElementsByTagName("tr")[0].appendChild(document.createElement("th"));
+        const logLast = workBlock.getElementsByClassName("current")[0].appendChild(document.createElement("th"));
+        logLast.style.background = "#fff"
+        logLast.style.fontWeight = "unset";
+        logLast.align = "center";
         if (timeLeft > 0)
-            document.getElementsByClassName("current")[0].getElementsByTagName("td")[3].textContent += " Log left: " + Math.floor(timeLeft / 28800) + "d " + Math.floor((timeLeft % 28800) / 3600) + "h " + Math.floor(((timeLeft % 28800) % 3600) / 60) + "m";
-        else 
-            document.getElementsByClassName("current")[0].getElementsByTagName("td")[3].textContent += " Loged excess: " + Math.floor(Math.abs(timeLeft) / 28800) + "d " + Math.floor((Math.abs(timeLeft) % 28800) / 3600) + "h " + Math.floor(((Math.abs(timeLeft) % 28800) % 3600) / 60) + "m";
+            logLastTitle.textContent = "Осталось залогировать";
+        else if (timeLeft === 0) {
+            logLastTitle.textContent = "Логировать ничего не надо";
+            logLast.textContent = ":)"
+            return;
+        } else
+            logLastTitle.textContent = "Залогировано лишнего";
+
+
+        const columnsCount = workBlock.getElementsByTagName("thead")[0].getElementsByTagName("tr")[0].childElementCount;
+        for (let i = 1; i < columnsCount - 1; i++) {
+            workBlock.getElementsByTagName("thead")[0].getElementsByTagName("tr")[0].getElementsByTagName("th")[i].width = "";
+        }
+
+        if (timeLeft > 0)
+            logLast.textContent += Math.floor(timeLeft / 28800) + "d " + Math.floor((timeLeft % 28800) / 3600) + "h " + Math.floor(((timeLeft % 28800) % 3600) / 60) + "m";
+        else
+            logLast.textContent += Math.floor(Math.abs(timeLeft) / 28800) + "d " + Math.floor((Math.abs(timeLeft) % 28800) / 3600) + "h " + Math.floor(((Math.abs(timeLeft) % 28800) % 3600) / 60) + "m";
     }
 }
 
