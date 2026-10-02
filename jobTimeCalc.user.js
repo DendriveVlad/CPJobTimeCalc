@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JobTimeCalc
 // @namespace    http://tampermonkey.net/
-// @version      26M10D2-v1
+// @version      26M10D2-v2
 // @description  Calculating time to end of work day
 // @author       VKK
 // @match        https://helpdesk.compassluxe.com/pa-reports-new/report/
@@ -393,7 +393,8 @@
 
         TOTime = document.createElement('span');
         TOTime.style.fontWeight = '500';
-        if (!isHoliday && !(jsTimeOut.hours === 0 && jsTimeOut.minutes === 0 && jsTimeOut.seconds === 0) && !(jsOverTime.hours === 0 && jsOverTime.minutes === 0 && jsOverTime.seconds === 0)) {
+        jsOverTime.minutes = 1
+        if (!isHoliday && !(jsOverTime.hours === 0 && jsOverTime.minutes === 0 && jsOverTime.seconds === 0) || !(jsTimeOut.hours === 0 && jsTimeOut.minutes === 0 && jsTimeOut.seconds === 0)) {
             TOTime.style.transition = 'background .2718s';
             TOTime.style.borderRadius = '7px';
             setupDefaultMoseEvent(TOTime, recalcTime)
@@ -533,11 +534,6 @@
     }
 
     function settingsMenu() {
-        // if (localStorage.getItem("JTC_IsTestingModeEnabled") !== '1') {
-        //     alert("In Dev...");
-        //     return;
-        // }
-
         const DAYS = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
 
         function loadWeekSettings() {
@@ -683,7 +679,7 @@
 
                 const label = document.createElement('label');
                 label.htmlFor = 'dayH' + i;
-                label.textContent = dayName;
+                label.textContent = dayName + ":";
                 label.style.display = 'inline-block';
                 label.style.width = '120px';
                 label.style.marginRight = '10px';
@@ -706,7 +702,6 @@
                 };
 
                 const hours = makeSelect('dayH' + i, 23);
-                group.appendChild(document.createTextNode(':'));
                 const minutes = makeSelect('dayM' + i, 59);
 
                 group.appendChild(label);
@@ -759,7 +754,7 @@
 
             const cancelButton = document.createElement('button');
             cancelButton.type = 'button';
-            cancelButton.textContent = 'Отмена';
+            cancelButton.textContent = '✘ Отмена';
             cancelButton.style.padding = '5px 15px';
             cancelButton.style.marginLeft = '10px';
             cancelButton.style.fontSize = '11px';
@@ -767,6 +762,9 @@
             cancelButton.style.border = '1px solid #6e0000';
             cancelButton.style.backgroundColor = '#f0f0f0';
             cancelButton.style.color = 'black';
+            cancelButton.style.width = '100px';
+            cancelButton.style.boxSizing = 'border-box';
+            cancelButton.style.textAlign = 'center';
 
             // Кнопка "Сохранить"
             const saveButton = document.createElement('button');
@@ -780,6 +778,9 @@
             saveButton.style.backgroundColor = '#f0f0f0';
             saveButton.style.color = 'black';
             saveButton.style.transition = 'all 0.2s ease';
+            saveButton.style.width = '100px';
+            saveButton.style.boxSizing = 'border-box';
+            saveButton.style.textAlign = 'center';
 
             saveButton.addEventListener('mouseenter', () => {
                 saveButton.style.backgroundColor = '#4CAF50';
@@ -960,6 +961,9 @@
 
         .dialog-form button {
             transition: all 0.2s ease;
+            width: 100px;
+            box-sizing: border-box;
+            text-align: center;
         }
 
         .dialog-form button:hover {
