@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JobTimeCalc
 // @namespace    http://tampermonkey.net/
-// @version      26M10D2-v2
+// @version      26M10D2-v3
 // @description  Calculating time to end of work day
 // @author       VKK
 // @match        https://helpdesk.compassluxe.com/pa-reports-new/report/
@@ -393,7 +393,6 @@
 
         TOTime = document.createElement('span');
         TOTime.style.fontWeight = '500';
-        jsOverTime.minutes = 1
         if (!isHoliday && !(jsOverTime.hours === 0 && jsOverTime.minutes === 0 && jsOverTime.seconds === 0) || !(jsTimeOut.hours === 0 && jsTimeOut.minutes === 0 && jsTimeOut.seconds === 0)) {
             TOTime.style.transition = 'background .2718s';
             TOTime.style.borderRadius = '7px';
