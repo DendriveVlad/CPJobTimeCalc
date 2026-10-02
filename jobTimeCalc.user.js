@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JobTimeCalc
 // @namespace    http://tampermonkey.net/
-// @version      26M9D30-beta-v1
+// @version      26M10D2-v1
 // @description  Calculating time to end of work day
 // @author       VKK
 // @match        https://helpdesk.compassluxe.com/pa-reports-new/report/
@@ -393,7 +393,7 @@
 
         TOTime = document.createElement('span');
         TOTime.style.fontWeight = '500';
-        if (!isHoliday || (jsTimeOut.hours !== 0 && jsTimeOut.minutes !== 0 && jsTimeOut.seconds !== 0)) {
+        if (!isHoliday && !(jsTimeOut.hours === 0 && jsTimeOut.minutes === 0 && jsTimeOut.seconds === 0) && !(jsOverTime.hours === 0 && jsOverTime.minutes === 0 && jsOverTime.seconds === 0)) {
             TOTime.style.transition = 'background .2718s';
             TOTime.style.borderRadius = '7px';
             setupDefaultMoseEvent(TOTime, recalcTime)
@@ -450,6 +450,9 @@
             }
             // jsTimeOut.postfix = " (Погрешность -2 минуты)"
             // jsTimeOut.prefix = "~"
+        } else if (jsTimeOut.hours >= 24) {
+            isTomorrow = true;
+            jsTimeOut.hours %= 24;
         }
     }
 
@@ -530,100 +533,230 @@
     }
 
     function settingsMenu() {
-        if (localStorage.getItem("JTC_IsTestingModeEnabled") !== '1') {
-            alert("In Dev...");
-            return;
+        // if (localStorage.getItem("JTC_IsTestingModeEnabled") !== '1') {
+        //     alert("In Dev...");
+        //     return;
+        // }
+
+        const DAYS = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
+
+        function loadWeekSettings() {
+            let settings;
+            try {
+                settings = JSON.parse(localStorage.getItem('JTC_DailyTimeSettings'));
+            } catch (e) {
+                settings = null;
+            }
+            if (!settings || typeof settings !== 'object') settings = {};
+
+            const days = {};
+            for (let i = 0; i < 7; i++) {
+                // i — порядок в UI: 0=Пн ... 6=Вс; в хранилище 0=Вс ... 6=Сб
+                const d = settings[String((i + 1) % 7)];
+                let hours = 0, minutes = 0;
+                if (d && Number.isInteger(d.hours) && Number.isInteger(d.minutes)) {
+                    hours = Math.min(23, Math.max(0, d.hours));
+                    minutes = Math.min(59, Math.max(0, d.minutes));
+                }
+                days[i] = { hours, minutes };
+            }
+
+            const s = settings.Settings || {};
+            const zd = Number.isInteger(s.ZDType) ? Math.min(4, Math.max(0, s.ZDType)) : 0;
+
+            return {
+                days,
+                allowShortDay: !!s.AllowShortDay,
+                noHolidays: !!s.NoHolidays,
+                zdType: zd
+            };
         }
+
+        function buildWeekSettings(days, allowShortDay, noHolidays, zdType) {
+            const obj = {};
+            for (let i = 0; i < 7; i++) {
+                obj[String((i + 1) % 7)] = { hours: days[i].hours, minutes: days[i].minutes };
+            }
+            obj['Settings'] = { AllowShortDay: allowShortDay, NoHolidays: noHolidays, ZDType: zdType };
+            return obj;
+        }
+
+        function setDayTimes(days, map) {
+            for (let i = 0; i < 7; i++) {
+                const t = map[i];
+                days[i] = { hours: t ? t[0] : 0, minutes: t ? t[1] : 0 };
+            }
+        }
+
+        // --- Пресеты ---
+        let PRESETS
+        if (localStorage.getItem("JTC_IsTestingModeEnabled") === '1') {
+            PRESETS = [
+                { label: 'По умолчанию', applyZDType: false, zdType: 0,  allowShortDay: true,  noHolidays: false, apply: (days) => setDayTimes(days, { 0: [8, 15], 1: [8, 15], 2: [8, 15], 3: [8, 15], 4: [7, 0] }) },
+                { label: '100%',          applyZDType: false, zdType: 0,  allowShortDay: false, noHolidays: false, apply: (days) => setDayTimes(days, { 0: [8, 0], 1: [8, 0], 2: [8, 0], 3: [8, 0], 4: [8, 0] }) },
+                { label: '75%',           applyZDType: false, zdType: 0,  allowShortDay: false, noHolidays: false, apply: (days) => setDayTimes(days, { 0: [6, 0], 1: [6, 0], 2: [6, 0], 3: [6, 0], 4: [6, 0] }) },
+                { label: '50%',           applyZDType: false, zdType: 0,  allowShortDay: false, noHolidays: false, apply: (days) => setDayTimes(days, { 0: [4, 0], 1: [4, 0], 2: [4, 0], 3: [4, 0], 4: [4, 0] }) },
+                { label: '25%',           applyZDType: false, zdType: 0,  allowShortDay: false, noHolidays: false, apply: (days) => setDayTimes(days, { 0: [2, 0], 1: [2, 0], 2: [2, 0], 3: [2, 0], 4: [2, 0] }) },
+                { label: '2/2 Вар1',      applyZDType: true,  zdType: 1, allowShortDay: false, noHolidays: true, apply: (days) => setDayTimes(days, { 0: [12, 0], 1: [12, 0], 4: [12, 0], 5: [12, 0] }) },
+                { label: '2/2 Вар2',      applyZDType: true,  zdType: 2, allowShortDay: false, noHolidays: true, apply: (days) => setDayTimes(days, { 1: [12, 0], 2: [12, 0], 5: [12, 0], 6: [12, 0] }) },
+                { label: '2/2 Вар3',      applyZDType: true,  zdType: 3, allowShortDay: false, noHolidays: true, apply: (days) => setDayTimes(days, { 2: [12, 0], 3: [12, 0], 6: [12, 0] }) },
+                { label: '2/2 Вар4',      applyZDType: true,  zdType: 4, allowShortDay: false, noHolidays: true, apply: (days) => setDayTimes(days, { 0: [12, 0], 3: [12, 0], 4: [12, 0] }) },
+                { label: '6/1',           applyZDType: false, zdType: 0, allowShortDay: false, noHolidays: false, apply: (days) => setDayTimes(days, { 0: [8, 0], 1: [8, 0], 2: [8, 0], 3: [8, 0], 4: [8, 0], 5: [8, 0] }) },
+                { label: '6/1 над 5/2',   applyZDType: false, zdType: 0, allowShortDay: false, noHolidays: false, apply: (days) => setDayTimes(days, { 0: [6, 0], 1: [6, 0], 2: [6, 0], 3: [6, 0], 4: [6, 0], 5: [4, 0] }) },
+                { label: 'Безумее',       applyZDType: false, zdType: 0, allowShortDay: false, noHolidays: false, apply: (days) => { for (let i = 0; i < 7; i++) days[i] = { hours: 8, minutes: 0 }; } },
+                { label: 'Безумее над 5/2', applyZDType: false, zdType: 0, allowShortDay: false, noHolidays: false, apply: (days) => { for (let i = 0; i < 7; i++) days[i] = { hours: 5, minutes: 0 }; } },
+                { label: 'Смерть 💀',     applyZDType: false, zdType: 0, allowShortDay: false, noHolidays: true, apply: (days) => { for (let i = 0; i < 7; i++) days[i] = { hours: 23, minutes: 59 }; } }
+            ];
+        } else {
+            PRESETS = [
+                { label: 'По умолчанию', applyZDType: false, zdType: 0,  allowShortDay: true,  noHolidays: false, apply: (days) => setDayTimes(days, { 0: [8, 15], 1: [8, 15], 2: [8, 15], 3: [8, 15], 4: [7, 0] }) },
+                { label: '100%',          applyZDType: false, zdType: 0,  allowShortDay: false, noHolidays: false, apply: (days) => setDayTimes(days, { 0: [8, 0], 1: [8, 0], 2: [8, 0], 3: [8, 0], 4: [8, 0] }) },
+                { label: '75%',           applyZDType: false, zdType: 0,  allowShortDay: false, noHolidays: false, apply: (days) => setDayTimes(days, { 0: [6, 0], 1: [6, 0], 2: [6, 0], 3: [6, 0], 4: [6, 0] }) },
+                { label: '50%',           applyZDType: false, zdType: 0,  allowShortDay: false, noHolidays: false, apply: (days) => setDayTimes(days, { 0: [4, 0], 1: [4, 0], 2: [4, 0], 3: [4, 0], 4: [4, 0] }) },
+                { label: '25%',           applyZDType: false, zdType: 0,  allowShortDay: false, noHolidays: false, apply: (days) => setDayTimes(days, { 0: [2, 0], 1: [2, 0], 2: [2, 0], 3: [2, 0], 4: [2, 0] }) },
+                { label: '6/1',           applyZDType: false, zdType: 0, allowShortDay: false, noHolidays: false, apply: (days) => setDayTimes(days, { 0: [8, 0], 1: [8, 0], 2: [8, 0], 3: [8, 0], 4: [8, 0], 5: [8, 0] }) },
+                { label: '6/1 над 5/2',   applyZDType: false, zdType: 0, allowShortDay: false, noHolidays: false, apply: (days) => setDayTimes(days, { 0: [6, 0], 1: [6, 0], 2: [6, 0], 3: [6, 0], 4: [6, 0], 5: [4, 0] }) },
+                { label: 'Безумее',       applyZDType: false, zdType: 0, allowShortDay: false, noHolidays: false, apply: (days) => { for (let i = 0; i < 7; i++) days[i] = { hours: 8, minutes: 0 }; } },
+                { label: 'Безумее над 5/2', applyZDType: false, zdType: 0, allowShortDay: false, noHolidays: false, apply: (days) => { for (let i = 0; i < 7; i++) days[i] = { hours: 5, minutes: 0 }; } },
+                { label: 'Смерть 💀',     applyZDType: false, zdType: 0, allowShortDay: false, noHolidays: true, apply: (days) => { for (let i = 0; i < 7; i++) days[i] = { hours: 23, minutes: 59 }; } }
+            ];
+        }
+
+
+        // --- Создание диалога ---
         function createDataDialog() {
-            // Создаем диалоговое окно
             const dialog = document.createElement('dialog');
             dialog.id = 'dataDialog';
 
-            // Создаем форму внутри диалога
             const form = document.createElement('form');
-            form.method = 'dialog';
             form.className = 'dialog-form';
 
             // Заголовок
             const title = document.createElement('h3');
             title.style.margin = '0 0 15px 0';
             title.style.color = '#6e0000';
-            title.textContent = 'Ввод дополнительных данных';
+            title.textContent = 'Настройка рабочего времени';
             form.appendChild(title);
 
-            // Создаем поля для ввода
-            const fields = [
-                { id: 'data1', label: 'Данные 1:' },
-                { id: 'data2', label: 'Данные 2:' },
-                { id: 'data3', label: 'Данные 3:' },
-                { id: 'data4', label: 'Данные 4:' }
-            ];
+            // Строка с пресетом
+            const presetGroup = document.createElement('div');
+            presetGroup.className = 'form-group';
+            presetGroup.style.marginBottom = '15px';
 
-            fields.forEach(field => {
+            const presetLabel = document.createElement('label');
+            presetLabel.htmlFor = 'presetSelect';
+            presetLabel.textContent = 'Пресет:';
+            presetLabel.style.display = 'inline-block';
+            presetLabel.style.width = '120px';
+            presetLabel.style.marginRight = '10px';
+            presetLabel.style.fontWeight = 'bold';
+
+            const presetSelect = document.createElement('select');
+            presetSelect.id = 'presetSelect';
+            presetSelect.style.padding = '4px';
+            presetSelect.style.border = '1px solid #ccc';
+            presetSelect.style.fontFamily = 'inherit';
+            presetSelect.style.fontSize = '11px';
+
+            const customOpt = document.createElement('option');
+            customOpt.value = 'custom';
+            customOpt.textContent = 'Своё';
+            presetSelect.appendChild(customOpt);
+
+            PRESETS.forEach((preset, index) => {
+                const opt = document.createElement('option');
+                opt.value = String(index);
+                opt.textContent = preset.label;
+                presetSelect.appendChild(opt);
+            });
+
+            presetGroup.appendChild(presetLabel);
+            presetGroup.appendChild(presetSelect);
+            form.appendChild(presetGroup);
+
+            // Строки с днями недели
+            const dayRows = []; // каждый элемент: { hours, minutes } — два <select>
+            DAYS.forEach((dayName, i) => {
                 const group = document.createElement('div');
                 group.className = 'form-group';
-                group.style.marginBottom = '15px';
+                group.style.marginBottom = '10px';
 
                 const label = document.createElement('label');
-                label.htmlFor = field.id;
-                label.textContent = field.label;
+                label.htmlFor = 'dayH' + i;
+                label.textContent = dayName;
                 label.style.display = 'inline-block';
-                label.style.width = '100px';
+                label.style.width = '120px';
                 label.style.marginRight = '10px';
                 label.style.fontWeight = 'bold';
 
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.id = field.id;
-                input.name = field.id;
-                input.placeholder = 'Поле для заполнения';
-                input.style.padding = '5px';
-                input.style.width = '200px';
-                input.style.border = '1px solid #ccc';
+                const makeSelect = (id, max) => {
+                    const sel = document.createElement('select');
+                    sel.id = id;
+                    sel.style.padding = '4px';
+                    sel.style.border = '1px solid #ccc';
+                    sel.style.fontFamily = 'inherit';
+                    sel.style.fontSize = '11px';
+                    for (let v = 0; v <= max; v++) {
+                        const opt = document.createElement('option');
+                        opt.value = v;
+                        opt.textContent = String(v).padStart(2, '0');
+                        sel.appendChild(opt);
+                    }
+                    return sel;
+                };
+
+                const hours = makeSelect('dayH' + i, 23);
+                group.appendChild(document.createTextNode(':'));
+                const minutes = makeSelect('dayM' + i, 59);
 
                 group.appendChild(label);
-                group.appendChild(input);
+                group.appendChild(hours);
+                group.appendChild(minutes);
                 form.appendChild(group);
+                dayRows.push({ hours, minutes });
             });
 
-            // Создаем группу для чекбокса
-            const checkboxGroup = document.createElement('div');
-            checkboxGroup.className = 'form-group checkbox-group';
-            checkboxGroup.style.marginBottom = '15px';
-            checkboxGroup.style.display = 'flex';
-            checkboxGroup.style.alignItems = 'center';
+            // Чекбоксы
+            function createCheckboxRow(id, labelText, checked) {
+                const row = document.createElement('div');
+                row.className = 'form-group checkbox-group';
+                row.style.marginBottom = '10px';
+                row.style.display = 'flex';
+                row.style.alignItems = 'center';
 
-            const checkboxLabel = document.createElement('label');
-            checkboxLabel.htmlFor = 'mySwitch';
-            checkboxLabel.textContent = 'Переключатель:';
-            checkboxLabel.style.display = 'inline-block';
-            checkboxLabel.style.width = '100px';
-            checkboxLabel.style.marginRight = '10px';
-            checkboxLabel.style.fontWeight = 'bold';
+                const spacer = document.createElement('span');
+                spacer.style.width = '120px';
+                spacer.style.marginRight = '10px';
+                spacer.style.display = 'inline-block';
 
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.id = 'mySwitch';
-            checkbox.name = 'mySwitch';
-            checkbox.checked = true;
+                const box = document.createElement('input');
+                box.type = 'checkbox';
+                box.id = id;
+                box.name = id;
+                box.checked = checked;
 
-            const checkboxTextLabel = document.createElement('label');
-            checkboxTextLabel.htmlFor = 'mySwitch';
-            checkboxTextLabel.textContent = 'чек-бокс с галочкой';
-            checkboxTextLabel.style.marginLeft = '5px';
-            checkboxTextLabel.style.fontWeight = 'normal';
+                const boxLabel = document.createElement('label');
+                boxLabel.htmlFor = id;
+                boxLabel.textContent = labelText;
+                boxLabel.style.marginLeft = '5px';
+                boxLabel.style.fontWeight = 'normal';
+                boxLabel.style.cursor = 'pointer';
 
-            checkboxGroup.appendChild(checkboxLabel);
-            checkboxGroup.appendChild(checkbox);
-            checkboxGroup.appendChild(checkboxTextLabel);
-            form.appendChild(checkboxGroup);
+                row.appendChild(spacer);
+                row.appendChild(box);
+                row.appendChild(boxLabel);
+                form.appendChild(row);
+                return box;
+            }
 
-            // Создаем контейнер для кнопок
+            const shortDayCheck = createCheckboxRow('allowShortDay', 'Учитывать сокращённые дни', true);
+            const holidaysCheck = createCheckboxRow('noHolidays', 'Без праздников', true);
+
+            // Кнопки
             const buttonGroup = document.createElement('div');
             buttonGroup.style.textAlign = 'right';
             buttonGroup.style.marginTop = '20px';
 
-            // Кнопка "Отмена"
             const cancelButton = document.createElement('button');
             cancelButton.type = 'button';
             cancelButton.textContent = 'Отмена';
@@ -633,218 +766,224 @@
             cancelButton.style.cursor = 'pointer';
             cancelButton.style.border = '1px solid #6e0000';
             cancelButton.style.backgroundColor = '#f0f0f0';
-            cancelButton.onclick = function() {
-                // Анимация кнопки Отмена
+            cancelButton.style.color = 'black';
+
+            // Кнопка "Сохранить"
+            const saveButton = document.createElement('button');
+            saveButton.type = 'button';
+            saveButton.textContent = '✓ Сохранить';
+            saveButton.style.padding = '5px 15px';
+            saveButton.style.marginLeft = '10px';
+            saveButton.style.fontSize = '11px';
+            saveButton.style.cursor = 'pointer';
+            saveButton.style.border = '1px solid #6e0000';
+            saveButton.style.backgroundColor = '#f0f0f0';
+            saveButton.style.color = 'black';
+            saveButton.style.transition = 'all 0.2s ease';
+
+            saveButton.addEventListener('mouseenter', () => {
+                saveButton.style.backgroundColor = '#4CAF50';
+                saveButton.style.color = 'white';
+                saveButton.style.borderColor = '#45a049';
+                saveButton.style.transform = 'scale(1.05)';
+            });
+
+            saveButton.addEventListener('mouseleave', () => {
+                saveButton.style.backgroundColor = '#f0f0f0';
+                saveButton.style.color = 'black';
+                saveButton.style.borderColor = '#6e0000';
+                saveButton.style.transform = 'scale(1)';
+            });
+
+            saveButton.addEventListener('mousedown', () => { saveButton.style.transform = 'scale(0.95)'; });
+            saveButton.addEventListener('mouseup', () => { saveButton.style.transform = 'scale(1.05)'; });
+
+            // --- Сбор данных из диалога ---
+            function collectData() {
+                const days = {};
+                for (let i = 0; i < 7; i++) {
+                    days[i] = {
+                        hours: parseInt(dayRows[i].hours.value, 10),
+                        minutes: parseInt(dayRows[i].minutes.value, 10)
+                    };
+                }
+                return {
+                    days,
+                    allowShortDay: shortDayCheck.checked,
+                    noHolidays: holidaysCheck.checked,
+                    zdType: loadWeekSettings().zdType // ZDType меняется только пресетами
+                };
+            }
+
+            function closeDialog() {
                 cancelButton.style.transform = 'scale(0.95)';
-                cancelButton.style.backgroundColor = '#ff6b6b';
-                cancelButton.style.color = 'white';
-                cancelButton.style.borderColor = '#ff4757';
-
-                setTimeout(() => {
-                    cancelButton.style.transform = 'scale(1)';
-                }, 100);
-
-                // Закрываем диалог с анимацией
+                setTimeout(() => { cancelButton.style.transform = 'scale(1)'; }, 100);
                 dialog.classList.add('dialog-hide');
+                setTimeout(() => dialog.close(), 200);
+            }
 
-                // Даем время на анимацию перед закрытием
-                setTimeout(() => {
-                    dialog.close();
-                    // Не удаляем класс здесь, удалим в обработчике close
-                }, 200);
+            cancelButton.onclick = closeDialog;
+
+            saveButton.onclick = () => {
+                saveButton.style.transform = 'scale(0.95)';
+                saveButton.style.backgroundColor = '#4CAF50';
+                setTimeout(() => { saveButton.style.transform = 'scale(1)'; }, 100);
+
+                const data = collectData();
+                localStorage.setItem('JTC_DailyTimeSettings', JSON.stringify(buildWeekSettings(
+                    data.days, data.allowShortDay, data.noHolidays, data.zdType
+                )));
+
+                closeDialog();
             };
 
-            // Кнопка "OK" с анимацией
-            const okButton = document.createElement('button');
-            okButton.type = 'submit';
-            okButton.value = 'submit';
-            okButton.innerHTML = '✓ OK';  // Добавляем галочку
-            okButton.style.padding = '5px 15px';
-            okButton.style.marginLeft = '10px';
-            okButton.style.fontSize = '11px';
-            okButton.style.cursor = 'pointer';
-            okButton.style.border = '1px solid #6e0000';
-            okButton.style.backgroundColor = '#f0f0f0';
-            okButton.style.transition = 'all 0.2s ease';
+            // --- Логика пресетов ---
+            function updatePresetSelect(value) {
+                if (presetSelect.value !== value) presetSelect.value = value;
+            }
 
-            // Эффект при наведении
-            okButton.addEventListener('mouseenter', () => {
-                okButton.style.backgroundColor = '#4CAF50';
-                okButton.style.color = 'white';
-                okButton.style.borderColor = '#45a049';
-                okButton.style.transform = 'scale(1.05)';
+            // Применяет пресет, не трогая ZDType у пресетов без applyZDType
+            function applyPreset(preset) {
+                const data = collectData();
+                preset.apply(data.days);
+
+                if (preset.applyZDType) data.zdType = preset.zdType;
+
+                shortDayCheck.checked = preset.allowShortDay;
+                holidaysCheck.checked = preset.noHolidays;
+
+                // Перерисовываем поля времени
+                for (let i = 0; i < 7; i++) {
+                    dayRows[i].hours.value = String(data.days[i].hours);
+                    dayRows[i].minutes.value = String(data.days[i].minutes);
+                }
+                updatePresetSelect(String(PRESETS.indexOf(preset)));
+            }
+
+            presetSelect.addEventListener('change', () => {
+                if (presetSelect.value === 'custom') return; // "Своё" ничего не меняет
+                applyPreset(PRESETS[parseInt(presetSelect.value, 10)]);
             });
 
-            okButton.addEventListener('mouseleave', () => {
-                okButton.style.backgroundColor = '#f0f0f0';
-                okButton.style.color = 'black';
-                okButton.style.borderColor = '#6e0000';
-                okButton.style.transform = 'scale(1)';
+            // Любое ручное изменение -> пресет становится "Своё"
+            function markCustom() { updatePresetSelect('custom'); }
+            dayRows.forEach(row => {
+                row.hours.addEventListener('change', markCustom);
+                row.minutes.addEventListener('change', markCustom);
             });
-
-            // Эффект при нажатии
-            okButton.addEventListener('mousedown', () => {
-                okButton.style.transform = 'scale(0.95)';
-            });
-
-            okButton.addEventListener('mouseup', () => {
-                okButton.style.transform = 'scale(1.05)';
-            });
-
-            okButton.addEventListener('click', (e) => {
-                // Не закрываем сразу, даем время на анимацию
-                e.preventDefault(); // Предотвращаем немедленное закрытие
-
-                // Анимация кнопки OK
-                okButton.style.transform = 'scale(0.95)';
-                okButton.style.backgroundColor = '#4CAF50';
-
-                setTimeout(() => {
-                    okButton.style.transform = 'scale(1)';
-                }, 100);
-
-                // Плавно скрываем диалог
-                dialog.classList.add('dialog-hide');
-
-                // Через 200мс отправляем форму и закрываем
-                setTimeout(() => {
-                    // Программно отправляем форму
-                    const form = dialog.querySelector('form');
-                    if (form) {
-                        form.dispatchEvent(new Event('submit'));
-                    }
-                    dialog.close('submit');
-                }, 200);
-            });
+            shortDayCheck.addEventListener('change', markCustom);
+            holidaysCheck.addEventListener('change', markCustom);
 
             buttonGroup.appendChild(cancelButton);
-            buttonGroup.appendChild(okButton);
+            buttonGroup.appendChild(saveButton);
             form.appendChild(buttonGroup);
-
             dialog.appendChild(form);
 
-            // Добавляем созданные элементы на страницу
             const container = document.querySelector('body > div:last-child');
             if (container) {
                 container.appendChild(dialog);
             }
 
-            return { dialog };
+            return { dialog, dayRows, shortDayCheck, holidaysCheck, presetSelect };
         }
 
-        // Функция для добавления стилей
+        // --- Стили (как в оригинале) ---
         function addDialogStyles() {
             const style = document.createElement('style');
             style.textContent = `
-            /* Анимация появления */
-            @keyframes fadeInScale {
-                0% {
-                    opacity: 0;
-                    transform: scale(0.7);
-                }
-                100% {
-                    opacity: 1;
-                    transform: scale(1);
-                }
-            }
-            
-            /* Анимация исчезновения */
-            @keyframes fadeOutScale {
-                0% {
-                    opacity: 1;
-                    transform: scale(1);
-                }
-                100% {
-                    opacity: 0;
-                    transform: scale(0.7);
-                }
-            }
-            
-            dialog {
-                padding: 20px;
-                border-radius: 8px;
-                border: 1px solid #6e0000;
-                box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-                font-family: Trebuchet MS, Tahoma, Verdana, Arial, sans-serif;
-                font-size: 11px;
-                /* Убираем transition, используем animation */
-            }
-            
-            dialog::backdrop {
-                background-color: rgba(0, 0, 0, 0);
-                transition: background-color 0.3s ease;
-            }
-            
-            dialog[open]::backdrop {
-                background-color: rgba(0, 0, 0, 0.5);
-            }
-            
-            /* Класс для анимации появления */
-            dialog.dialog-show {
-                animation: fadeInScale 0.3s ease forwards;
-            }
-            
-            /* Класс для анимации закрытия */
-            dialog.dialog-hide {
-                animation: fadeOutScale 0.2s ease forwards !important;
-            }
-            
-            #showDataDialog {
-                margin-left: 20px;
-                padding: 5px 15px;
-                font-size: 11px;
-                cursor: pointer;
-                border: 1px solid #6e0000;
-                background-color: #f0f0f0;
-                vertical-align: bottom;
-                transition: all 0.2s ease;
-            }
-            
-            #showDataDialog:hover {
-                background-color: #e0e0e0;
-                transform: scale(1.05);
-            }
-            
-            #showDataDialog:active {
-                transform: scale(0.95);
-            }
-            
-            .dialog-form input[type="text"] {
-                transition: border-color 0.2s ease, box-shadow 0.2s ease;
-            }
-            
-            .dialog-form input[type="text"]:hover,
-            .dialog-form input[type="text"]:focus {
-                border-color: #6e0000;
-                box-shadow: 0 0 5px rgba(110, 0, 0, 0.3);
-                outline: none;
-            }
-            
-            .dialog-form button {
-                transition: all 0.2s ease;
-            }
-            
-            .dialog-form button:hover {
-                background-color: #e0e0e0;
-                transform: scale(1.05);
-            }
-            
-            .dialog-form button:active {
-                transform: scale(0.95);
-            }
+        @keyframes fadeInScale {
+            0% { opacity: 0; transform: scale(0.7); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes fadeOutScale {
+            0% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(0.7); }
+        }
+
+        dialog {
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #6e0000;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            font-family: Trebuchet MS, Tahoma, Verdana, Arial, sans-serif;
+            font-size: 11px;
+        }
+
+        dialog::backdrop {
+            background-color: rgba(0, 0, 0, 0);
+            transition: background-color 0.3s ease;
+        }
+
+        dialog[open]::backdrop {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        dialog.dialog-show {
+            animation: fadeInScale 0.3s ease forwards;
+        }
+
+        dialog.dialog-hide {
+            animation: fadeOutScale 0.2s ease forwards !important;
+        }
+
+        #showDataDialog {
+            margin-left: 20px;
+            padding: 5px 15px;
+            font-size: 11px;
+            cursor: pointer;
+            border: 1px solid #6e0000;
+            background-color: #f0f0f0;
+            vertical-align: bottom;
+            transition: all 0.2s ease;
+        }
+
+        #showDataDialog:hover {
+            background-color: #e0e0e0;
+            transform: scale(1.05);
+        }
+
+        #showDataDialog:active {
+            transform: scale(0.95);
+        }
+
+        .dialog-form select {
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .dialog-form select:hover,
+        .dialog-form select:focus {
+            border-color: #6e0000;
+            box-shadow: 0 0 5px rgba(110, 0, 0, 0.3);
+            outline: none;
+        }
+
+        .dialog-form button {
+            transition: all 0.2s ease;
+        }
+
+        .dialog-form button:hover {
+            transform: scale(1.05);
+        }
+
+        .dialog-form button:active {
+            transform: scale(0.95);
+        }
         `;
             document.head.appendChild(style);
         }
 
-        // Функция для инициализации обработчиков событий
-        function initDialogEvents(dialog) {
-            // Открываем модальное окно при клике на кнопку
-            // Очищаем поля при открытии
-            document.getElementById('data1').value = '';
-            document.getElementById('data2').value = '';
-            document.getElementById('data3').value = '';
-            document.getElementById('data4').value = '';
-            document.getElementById('mySwitch').checked = true;
+        // --- События ---
+        function initDialogEvents({ dialog, dayRows, shortDayCheck, holidaysCheck, presetSelect }) {
+            // Заполняем поля из localStorage
+            const stored = loadWeekSettings();
+            for (let i = 0; i < 7; i++) {
+                dayRows[i].hours.value = String(stored.days[i].hours);
+                dayRows[i].minutes.value = String(stored.days[i].minutes);
+            }
+            shortDayCheck.checked = stored.allowShortDay;
+            holidaysCheck.checked = stored.noHolidays;
+            presetSelect.value = 'custom'; // «Своё» по умолчанию
 
             // Показываем с анимацией
             dialog.classList.add('dialog-show');
@@ -855,9 +994,8 @@
 
             // Переопределяем стандартное закрытие по ESC
             dialog.addEventListener('cancel', (e) => {
-                e.preventDefault(); // Отменяем стандартное закрытие
+                e.preventDefault();
 
-                // Плавно скрываем
                 dialog.classList.add('dialog-hide');
                 setTimeout(() => {
                     dialog.close();
@@ -865,37 +1003,9 @@
                 }, 200);
             });
 
-            // Обрабатываем событие закрытия диалога
+            // Обрабатываем закрытие диалога
             dialog.addEventListener('close', () => {
-                if (dialog.returnValue === 'submit') {
-                    // Собираем данные из полей
-                    const data1 = document.getElementById('data1').value;
-                    const data2 = document.getElementById('data2').value;
-                    const data3 = document.getElementById('data3').value;
-                    const data4 = document.getElementById('data4').value;
-                    const mySwitch = document.getElementById('mySwitch').checked;
-
-                    // Выводим в консоль
-                    console.log('=== Данные из формы ===');
-                    console.log('Данные 1:', data1 || '(не заполнено)');
-                    console.log('Данные 2:', data2 || '(не заполнено)');
-                    console.log('Данные 3:', data3 || '(не заполнено)');
-                    console.log('Данные 4:', data4 || '(не заполнено)');
-                    console.log('Переключатель:', mySwitch ? 'включен' : 'выключен');
-                    console.log('=======================');
-
-                    const formData = {
-                        data1: data1 || null,
-                        data2: data2 || null,
-                        data3: data3 || null,
-                        data4: data4 || null,
-                        switch: mySwitch
-                    };
-                    console.log('Объект с данными:', formData);
-                }
-
-                // Убираем классы анимации после закрытия
-                dialog.classList.remove('dialog-hide');
+                dialog.classList.remove('dialog-hide', 'dialog-show');
             });
         }
 
@@ -906,36 +1016,11 @@
             addDialogStyles();
 
             // Создаем элементы диалога
-            const { dialog } = createDataDialog();
+            const dialogRef = createDataDialog();
 
-            // Инициализируем обработчики событий
-            initDialogEvents(dialog);
-            // Анимация для иконки домика
-            const homeIcon = document.querySelector('img[src="./images/house.png"]');
-            if (homeIcon) {
-                homeIcon.style.transition = 'transform 0.2s ease, filter 0.2s ease';
-
-                homeIcon.addEventListener('mouseenter', () => {
-                    homeIcon.style.transform = 'scale(1.1) rotate(-5deg)';
-                    homeIcon.style.filter = 'brightness(1.2)';
-                });
-
-                homeIcon.addEventListener('mouseleave', () => {
-                    homeIcon.style.transform = 'scale(1) rotate(0deg)';
-                    homeIcon.style.filter = 'brightness(1)';
-                });
-
-                homeIcon.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    homeIcon.style.transform = 'scale(0.9) rotate(-10deg)';
-                    setTimeout(() => {
-                        homeIcon.style.transform = 'scale(1) rotate(0deg)';
-                        window.location.href = '';
-                    }, 200);
-                });
-            }
+            // Инициализируем обработчики событий и открываем диалог
+            initDialogEvents(dialogRef);
         }
-
     }
 
     function setupDefaultMoseEvent(block, clickFunc = null) {
