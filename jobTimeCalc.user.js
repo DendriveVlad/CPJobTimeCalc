@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JobTimeCalc
 // @namespace    http://tampermonkey.net/
-// @version      26M10D7-v2
+// @version      26M10D7-v3-hotfix
 // @description  Calculating time to end of work day
 // @author       VKK
 // @match        https://helpdesk.compassluxe.com/pa-reports-new/report/
@@ -358,7 +358,7 @@
             let savedTime;
             if (sessionStorage.getItem("JTC_LastFixedTime") !== null) {
                 savedTime = JSON.parse(sessionStorage.getItem("JTC_LastFixedTime"));
-                if (savedTime.Portal !== fixedTime.textContent) {
+                if (savedTime.PortalJSON !== undefined && savedTime.Portal !== fixedTime.textContent) {
 
                     async function getJSONTime(t1, t2) {
                         let t = {
