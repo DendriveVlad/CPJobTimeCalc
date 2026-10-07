@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JobTimeCalc
 // @namespace    http://tampermonkey.net/
-// @version      26M10D7-v3-hotfix
+// @version      26M10D7-v4
 // @description  Calculating time to end of work day
 // @author       VKK
 // @match        https://helpdesk.compassluxe.com/pa-reports-new/report/
@@ -69,12 +69,12 @@
     let minimumExceeded = false;
 
     function collect_analytics() {
-        analyze_delta_fix();
+        // analyze_delta_fix();
     }
 
     function clean_analytics() {
         let analytics = {
-            "JTC_AnalyzeFixedTime": 0
+            "JTC_AnalyzeFixedTime": 1
         };  // if key == 1: should be cleaned
         let key;
         if (localStorage.getItem("JTC_DisableCollectStats") === "1") {
@@ -92,6 +92,7 @@
 
     // analyze
     function analyze_delta_fix() {
+        // Не работает из-за обновлённой системы подсчёта времени при выходи
         const raw_data = localStorage.getItem("JTC_AnalyzeFixedTime");
         const data = raw_data !== null ? JSON.parse(raw_data) : {};
 
@@ -382,6 +383,7 @@
                     t = await getJSONTime(jsRealFixedTime, jsFixedTime);
                     let newTimeDif = t.seconds + t.minutes * 60 + t.hours * 3600;
                     if (Math.abs(oldTimeDif - newTimeDif) < 120 && oldTimeDif > newTimeDif) {
+                        console.warn("oldDif: " + oldTimeDif + "\nnewDif: " + newTimeDif + "\ndifOfDif: " + (oldTimeDif - newTimeDif));
                         savedTime.Portal = "";
                     }
                 }
