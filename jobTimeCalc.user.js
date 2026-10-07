@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JobTimeCalc
 // @namespace    http://tampermonkey.net/
-// @version      26M10D2-v3
+// @version      26M10D7-v1
 // @description  Calculating time to end of work day
 // @author       VKK
 // @match        https://helpdesk.compassluxe.com/pa-reports-new/report/
@@ -417,8 +417,9 @@
         jsTimeOut.seconds = jsEnterTime.seconds;
         jsTimeOut.minutes = (jsEnterTime.minutes + jsCurDayWorkTime.minutes) % 60;
         jsTimeOut.hours = (jsEnterTime.hours + jsCurDayWorkTime.hours + Math.floor((jsEnterTime.minutes + jsCurDayWorkTime.minutes) / 60));
+        let checkTomorrowSet = false;
         if (wasExit) {
-            /// * Минимальное отклонение от реального времени 11 минут 15 секунд, а максимальное 13 минут 20 секунд (Поэтому Fixed Time + 11:15) ((Видимо, уже не актуально. Логика внутри портала поменялась))
+            /// * Минимальное отклонение от реального времени 0 минут 0 секунд, а максимальное 1 минут 59 секунд
             let lTimeWentOut = {  // Difference between expected time and fixed time
                 "hours": jsRealFixedTime.hours - jsFixedTime.hours,
                 "minutes": jsRealFixedTime.minutes - jsFixedTime.minutes,
@@ -446,13 +447,18 @@
             }
             if (jsTimeOut.hours >= 24) {
                 isTomorrow = true;
+                checkTomorrowSet = true;
                 jsTimeOut.hours %= 24;
             }
             // jsTimeOut.postfix = " (Погрешность -2 минуты)"
             // jsTimeOut.prefix = "~"
         } else if (jsTimeOut.hours >= 24) {
             isTomorrow = true;
+            checkTomorrowSet = true;
             jsTimeOut.hours %= 24;
+        }
+        if (isTomorrow && !checkTomorrowSet) {
+            isTomorrow = false;
         }
     }
 
@@ -830,9 +836,16 @@
                 setTimeout(() => { saveButton.style.transform = 'scale(1)'; }, 100);
 
                 const data = collectData();
+                jsCurDayWorkTime.AllowShortDay = data.allowShortDay;
+                jsCurDayWorkTime.NoHolidays = data.noHolidays;
+                jsCurDayWorkTime.hours = data.days[currentDay].hours;
+                jsCurDayWorkTime.minutes = data.days[currentDay].minutes;
                 localStorage.setItem('JTC_DailyTimeSettings', JSON.stringify(buildWeekSettings(
                     data.days, data.allowShortDay, data.noHolidays, data.zdType
                 )));
+                initParams();
+                isHoliday ? calcHoliday() : calcWorkDay();
+                setupTimeBlock();
 
                 closeDialog();
             };
