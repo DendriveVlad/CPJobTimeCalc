@@ -359,22 +359,51 @@
             if (sessionStorage.getItem("JTC_LastFixedTime") !== null) {
                 savedTime = JSON.parse(sessionStorage.getItem("JTC_LastFixedTime"));
                 if (savedTime.Portal !== fixedTime.textContent) {
-                    savedTime.Portal = "";
+
+                    async function getJSONTime(t1, t2) {
+                        let t = {
+                            "hours": t1.hours - t2.hours,
+                            "minutes": t1.minutes - t2.minutes,
+                            "seconds": t1.seconds - t2.seconds
+                        }
+                        if (t.seconds < 0) {
+                            t.seconds += 60;
+                            t.minutes--;
+                        }
+                        if (t.minutes < 0) {
+                            t.minutes += 60;
+                            t.hours--;
+                        }
+                        return t;
+                    }
+
+                    let t = await getJSONTime(savedTime.Real, savedTime.PortalJSON);
+                    let oldTimeDif = t.seconds + t.minutes * 60 + t.hours * 3600;
+                    t = await getJSONTime(jsRealFixedTime, jsFixedTime);
+                    let newTimeDif = t.seconds + t.minutes * 60 + t.hours * 3600;
+                    if (Math.abs(oldTimeDif - newTimeDif) < 120 && oldTimeDif > newTimeDif) {
+                        savedTime.Portal = "";
+                    }
                 }
             } else {
                 savedTime = {
                     "Portal": "",
+                    "PortalJSON": {},
                     "Real": {},
                 };
             }
-            if (savedTime.Portal === "") {
+            if (savedTime.PortalJSON === undefined || savedTime.Portal === "") {
                 savedTime.Portal = fixedTime.textContent;
+                savedTime.PortalJSON = jsFixedTime;
                 savedTime.Real = jsRealFixedTime;
                 sessionStorage.setItem("JTC_LastFixedTime", JSON.stringify(savedTime));
             } else {
                 jsRealFixedTime.hours = savedTime.Real.hours;
                 jsRealFixedTime.minutes = savedTime.Real.minutes;
                 jsRealFixedTime.seconds = savedTime.Real.seconds;
+                jsFixedTime.hours = savedTime.PortalJSON.hours;
+                jsFixedTime.minutes = savedTime.PortalJSON.minutes;
+                jsFixedTime.seconds = savedTime.PortalJSON.seconds;
             }
         }
 
