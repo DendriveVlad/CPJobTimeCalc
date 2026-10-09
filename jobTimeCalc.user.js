@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JobTimeCalc
 // @namespace    http://tampermonkey.net/
-// @version      26M10D7-v4
+// @version      26M10D9-v1
 // @description  Calculating time to end of work day
 // @author       VKK
 // @match        https://helpdesk.compassluxe.com/pa-reports-new/report/
@@ -634,9 +634,9 @@
                 { label: '2/2 Вар3',      applyZDType: true,  zdType: 3, allowShortDay: false, noHolidays: true, apply: (days) => setDayTimes(days, { 2: [12, 0], 3: [12, 0], 6: [12, 0] }) },
                 { label: '2/2 Вар4',      applyZDType: true,  zdType: 4, allowShortDay: false, noHolidays: true, apply: (days) => setDayTimes(days, { 0: [12, 0], 3: [12, 0], 4: [12, 0] }) },
                 { label: '6/1',           applyZDType: false, zdType: 0, allowShortDay: false, noHolidays: false, apply: (days) => setDayTimes(days, { 0: [8, 0], 1: [8, 0], 2: [8, 0], 3: [8, 0], 4: [8, 0], 5: [8, 0] }) },
-                { label: '6/1 над 5/2',   applyZDType: false, zdType: 0, allowShortDay: false, noHolidays: false, apply: (days) => setDayTimes(days, { 0: [6, 0], 1: [6, 0], 2: [6, 0], 3: [6, 0], 4: [6, 0], 5: [4, 0] }) },
+                { label: '6/1 над 5/2',   applyZDType: false, zdType: 0, allowShortDay: false, noHolidays: false, apply: (days) => setDayTimes(days, { 0: [6, 50], 1: [6, 50], 2: [6, 50], 3: [6, 50], 4: [6, 50], 5: [5, 50] }) },
                 { label: 'Безумее',       applyZDType: false, zdType: 0, allowShortDay: false, noHolidays: false, apply: (days) => { for (let i = 0; i < 7; i++) days[i] = { hours: 8, minutes: 0 }; } },
-                { label: 'Безумее над 5/2', applyZDType: false, zdType: 0, allowShortDay: false, noHolidays: false, apply: (days) => { for (let i = 0; i < 7; i++) days[i] = { hours: 5, minutes: 0 }; } },
+                { label: 'Безумее над 5/2', applyZDType: false, zdType: 0, allowShortDay: false, noHolidays: false, apply: (days) => setDayTimes(days, { 0: [5, 50], 1: [5, 50], 2: [5, 50], 3: [5, 50], 4: [5, 50], 5: [5, 50], 6: [5, 0] }) },
                 { label: 'Смерть 💀',     applyZDType: false, zdType: 0, allowShortDay: false, noHolidays: true, apply: (days) => { for (let i = 0; i < 7; i++) days[i] = { hours: 23, minutes: 59 }; } }
             ];
         } else {
@@ -647,9 +647,9 @@
                 { label: '50%',           applyZDType: false, zdType: 0,  allowShortDay: false, noHolidays: false, apply: (days) => setDayTimes(days, { 0: [4, 0], 1: [4, 0], 2: [4, 0], 3: [4, 0], 4: [4, 0] }) },
                 { label: '25%',           applyZDType: false, zdType: 0,  allowShortDay: false, noHolidays: false, apply: (days) => setDayTimes(days, { 0: [2, 0], 1: [2, 0], 2: [2, 0], 3: [2, 0], 4: [2, 0] }) },
                 { label: '6/1',           applyZDType: false, zdType: 0, allowShortDay: false, noHolidays: false, apply: (days) => setDayTimes(days, { 0: [8, 0], 1: [8, 0], 2: [8, 0], 3: [8, 0], 4: [8, 0], 5: [8, 0] }) },
-                { label: '6/1 над 5/2',   applyZDType: false, zdType: 0, allowShortDay: false, noHolidays: false, apply: (days) => setDayTimes(days, { 0: [6, 0], 1: [6, 0], 2: [6, 0], 3: [6, 0], 4: [6, 0], 5: [4, 0] }) },
+                { label: '6/1 над 5/2',   applyZDType: false, zdType: 0, allowShortDay: false, noHolidays: false, apply: (days) => setDayTimes(days, { 0: [6, 50], 1: [6, 50], 2: [6, 50], 3: [6, 50], 4: [6, 50], 5: [5, 50] }) },
                 { label: 'Безумее',       applyZDType: false, zdType: 0, allowShortDay: false, noHolidays: false, apply: (days) => { for (let i = 0; i < 7; i++) days[i] = { hours: 8, minutes: 0 }; } },
-                { label: 'Безумее над 5/2', applyZDType: false, zdType: 0, allowShortDay: false, noHolidays: false, apply: (days) => { for (let i = 0; i < 7; i++) days[i] = { hours: 5, minutes: 0 }; } },
+                { label: 'Безумее над 5/2', applyZDType: false, zdType: 0, allowShortDay: false, noHolidays: false, apply: (days) => setDayTimes(days, { 0: [5, 50], 1: [5, 50], 2: [5, 50], 3: [5, 50], 4: [5, 50], 5: [5, 50], 6: [5, 0] }) },
                 { label: 'Смерть 💀',     applyZDType: false, zdType: 0, allowShortDay: false, noHolidays: true, apply: (days) => { for (let i = 0; i < 7; i++) days[i] = { hours: 23, minutes: 59 }; } }
             ];
         }
@@ -875,6 +875,7 @@
                     data.days, data.allowShortDay, data.noHolidays, data.zdType
                 )));
                 initParams();
+                isOverTimeApplied = false;
                 isHoliday ? calcHoliday() : calcWorkDay();
                 setupTimeBlock();
 
