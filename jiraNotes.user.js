@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JiraNotes
 // @namespace    local.jiranotes
-// @version      26M10D19-v1
+// @version      26M10D20-v1
 // @description  Jira (Server/DC): группа "Local notes" на странице задачи (под Agile, иначе под Dates/People). Текстблок (Visual) с рамкой/фокусом, простой тулбар (code — toggle). Все клавиши внутри блока блокируются на window/capture — глобальные хоткеи Jira не срабатывают. Заметки: localStorage JN_SavedNote, свёрнутость: JN_Collapsed.
 // @match        https://helpdesk.compassluxe.com/browse/*
 // @updateURL    https://raw.githubusercontent.com/DendriveVlad/CPJobTimeCalc/main/jiraNotes.user.js
@@ -435,6 +435,8 @@
         if (!key || Date.now() - lastAttempt < 250) return;
         lastAttempt = Date.now();
         try { inject(key); } catch (e) { console.warn('JiraNotes', e); }
+        const block = document.getElementById(GROUP_ID);
+        block.classList.remove('collapsed');
     }
     let pending = false;
     function schedule() {
