@@ -1,9 +1,10 @@
 // ==UserScript==
 // @name         JiraNotes
 // @namespace    local.jiranotes
-// @version      26M10D20-v1
+// @version      26M10D21-v1
 // @description  Jira (Server/DC): группа "Local notes" на странице задачи (под Agile, иначе под Dates/People). Текстблок (Visual) с рамкой/фокусом, простой тулбар (code — toggle). Все клавиши внутри блока блокируются на window/capture — глобальные хоткеи Jira не срабатывают. Заметки: localStorage JN_SavedNote, свёрнутость: JN_Collapsed.
 // @match        https://helpdesk.compassluxe.com/browse/*
+// @match        https://helpdesk.compassluxe.com/projects/*/issues/*
 // @updateURL    https://raw.githubusercontent.com/DendriveVlad/CPJobTimeCalc/main/jiraNotes.user.js
 // @downloadURL  https://raw.githubusercontent.com/DendriveVlad/CPJobTimeCalc/main/jiraNotes.user.js
 // @grant        none
@@ -17,7 +18,7 @@
     const STORAGE_KEY   = 'JN_SavedNote';   // { "TXCORE-123": "HTML заметки", ... }
     const COLLAPSE_KEY  = 'JN_Collapsed';   // { "TXCORE-123": true, ... }
     const GROUP_ID      = 'jn-local-notes';
-    const GROUP_TITLE   = 'Local notes';
+    const GROUP_TITLE   = 'Local Notes';
     const ANCHOR_TITLES = ['Agile', 'Dates', 'People', 'Даты', 'Люди'];
     // шеврон из заголовка модулей Jira
     const CHEVRON = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"><g fill="none" fill-rule="evenodd"><path d="M3.29175 4.793c-.389.392-.389 1.027 0 1.419l2.939 2.965c.218.215.5.322.779.322s.556-.107.769-.322l2.93-2.955c.388-.392.388-1.027 0-1.419-.389-.392-1.018-.392-1.406 0l-2.298 2.317-2.307-2.327c-.194-.195-.449-.293-.703-.293-.255 0-.51.098-.703.293z" fill="currentColor"></path></g></svg>';
@@ -32,7 +33,7 @@
 
     // ---------- DOM ----------
     const getIssueKey = () => {
-        const m = location.pathname.match(/\/browse\/([A-Za-z][A-Za-z0-9]*-\d+)/);
+        const m = location.pathname.match(/\/(?:browse|issues)\/([A-Za-z][A-Za-z0-9]*-\d+)/);
         return m ? m[1] : location.pathname;
     };
 
