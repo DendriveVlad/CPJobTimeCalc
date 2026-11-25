@@ -5,8 +5,8 @@
 // @description  Добавляет переключатель тёмной/светлой темы в правый верхний угол и запоминает выбор
 // @author       VKK
 // @match        https://helpdesk.compassluxe.com/pa-reports-new/report/
-// @updateURL    https://raw.githubusercontent.com/DendriveVlad/CPJobTimeCalc/main/DarkTheme.user.js
-// @downloadURL  https://raw.githubusercontent.com/DendriveVlad/CPJobTimeCalc/main/DarkTheme.user.js
+// @updateURL    https://github.com/DendriveVlad/CPJobTimeCalc/raw/main/DarkTheme.user.js
+// @downloadURL  https://github.com/DendriveVlad/CPJobTimeCalc/raw/main/DarkTheme.user.js
 // @run-at       document-idle
 // @grant        none
 // ==/UserScript==
