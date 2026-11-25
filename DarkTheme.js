@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Dark/Light Theme Toggle for Work time report
 // @namespace    https://compassplus.com/
-// @version      26M11D25-v1
+// @version      26M11D25-v2
 // @description  Добавляет переключатель тёмной/светлой темы в правый верхний угол и запоминает выбор
 // @author       VKK
 // @match        https://helpdesk.compassluxe.com/pa-reports-new/report/
@@ -15,7 +15,7 @@
     'use strict';
 
     // Ключ, под которым хранится выбор пользователя
-    const STORAGE_KEY = 'theme-pref';
+    const STORAGE_KEY = 'DT_theme';
 
     // --- Цвета тёмной темы ---
     const DARK_THEME_CSS = `
@@ -111,6 +111,22 @@
         /* Затемнение элементов с фоновой картинкой/градиентом */
         html.theme-dark * {
             box-shadow: none !important;
+        }
+        
+        html.theme-dark td[style*="color: #000099" i] {
+            color: #4f9cd9 !important;
+        } 
+        
+        html.theme-dark td[style*="color: #ff0000" i] {
+            color: #F27055 !important;
+        }
+        
+        html.theme-dark td[style*="color: #27ae60;" i] {
+            color: #27ae60 !important;
+        }
+        
+        html.theme-dark td[style*="color: #2980b9;" i] {
+            color: #2980b9 !important;
         }
     `;
 
