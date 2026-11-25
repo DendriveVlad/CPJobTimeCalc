@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JobTimeCalc
 // @namespace    http://tampermonkey.net/
-// @version      26M11D25-v1
+// @version      26M11D25-v2
 // @description  Calculating time to end of work day
 // @author       VKK
 // @match        https://helpdesk.compassluxe.com/pa-reports-new/report/
@@ -215,12 +215,14 @@
             console.warn('JobTimeCalc: Cannot find the Time Control Block');
             return false;
         }
-        showLoadingSpinner();
+
         enterTime = workBlock.querySelector('div:nth-child(1) > span:nth-child(2)');
         if (enterTime === null) {
             console.warn('JobTimeCalc: Cannot find First enter Time');
             return false;
         }
+
+        showLoadingSpinner();
 
         const lastExitTime = workBlock.querySelector('div:nth-child(2) > span:nth-child(2)');
         if (lastExitTime === null) {
@@ -1073,7 +1075,7 @@
 
     function setupDefaultMoseEvent(block, clickFunc = null) {
         block.addEventListener("mouseenter", () => {
-            block.style.background = "#C7C7C7";
+            block.style.background = "rgba(154,154,154,0.5)";
             block.style.cursor = "default";
         });
 
