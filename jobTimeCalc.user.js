@@ -1,12 +1,12 @@
 // ==UserScript==
 // @name         JobTimeCalc
 // @namespace    http://tampermonkey.net/
-// @version      26M10D9-v1
+// @version      26M11D25-v1
 // @description  Calculating time to end of work day
 // @author       VKK
 // @match        https://helpdesk.compassluxe.com/pa-reports-new/report/
-// @updateURL    https://raw.githubusercontent.com/DendriveVlad/CPJobTimeCalc/main/jobTimeCalc.user.js
-// @downloadURL  https://raw.githubusercontent.com/DendriveVlad/CPJobTimeCalc/main/jobTimeCalc.user.js
+// @updateURL    https://github.com/DendriveVlad/CPJobTimeCalc/raw/main/jobTimeCalc.user.js
+// @downloadURL  https://github.com/DendriveVlad/CPJobTimeCalc/raw/main/jobTimeCalc.user.js
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=tampermonkey.net
 // @grant
 // ==/UserScript==

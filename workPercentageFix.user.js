@@ -1,12 +1,12 @@
 // ==UserScript==
 // @name         workPercentageFix
 // @namespace    http://tampermonkey.net/
-// @version      26M9D30-v1
+// @version      26M11D25-v1
 // @description  Fixing percentage screen in report
 // @author       VP
 // @match        https://helpdesk.compassluxe.com/pa-reports-new/report/
-// @updateURL    https://raw.githubusercontent.com/DendriveVlad/CPJobTimeCalc/main/workPercentageFix.user.js
-// @downloadURL  https://raw.githubusercontent.com/DendriveVlad/CPJobTimeCalc/main/workPercentageFix.user.js
+// @updateURL    https://github.com/DendriveVlad/CPJobTimeCalc/raw/main/workPercentageFix.user.js
+// @downloadURL  https://github.com/DendriveVlad/CPJobTimeCalc/raw/main/workPercentageFix.user.js
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=tampermonkey.net
 // @grant        none
 // ==/UserScript==
