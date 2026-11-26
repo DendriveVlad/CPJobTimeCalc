@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Dark/Light Theme Toggle for Work time report
 // @namespace    https://compassplus.com/
-// @version      26M11D25-v4
+// @version      26M11D26-v4
 // @description  Добавляет переключатель тёмной/светлой темы в правый верхний угол и запоминает выбор
 // @author       VKK
 // @match        https://helpdesk.compassluxe.com/pa-reports-new/report/
@@ -157,6 +157,12 @@
             background-color: #4a3035 !important;
             color: #eadada !important;
         }
+        
+        /* Убираем светлый фон у верхней таблицы настроек отчёта */
+        html.theme-dark form > table[width="80%"][cellpadding="10"],
+        html.theme-dark form > table[width="80%"][cellpadding="10"] > tbody > tr > td {
+            background-color: #1e1e1e !important;
+        }
     `;
 
     let styleEl = null;
@@ -208,14 +214,15 @@
             'top: 12px',
             'right: 12px',
             'z-index: 2147483647',
-            'padding: 8px 14px',
+            'padding: 8px',
             'border: 1px solid #3c3c3c',
-            'border-radius: 6px',
+            'border-radius: 16px',
             'cursor: pointer',
-            'font: 13px/1.2 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+            'font: 18px/1.2 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
             'box-shadow: 0 2px 8px rgba(0,0,0,0.25)',
             'transition: background 0.2s, color 0.2s',
-            'user-select: none'
+            'user-select: none',
+            'mask-image: radial-gradient(circle, black 0%, transparent 80%)'
         ].join(';');
 
         // Текст/иконка зависят от текущей темы
