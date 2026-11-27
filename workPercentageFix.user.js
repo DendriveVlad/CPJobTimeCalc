@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         workPercentageFix
 // @namespace    http://tampermonkey.net/
-// @version      26M11D25-v1
+// @version      26M11D27-v1
 // @description  Fixing percentage screen in report
 // @author       VP
 // @match        https://helpdesk.compassluxe.com/pa-reports-new/report/
@@ -26,9 +26,7 @@ function runScript() {
         //     document.getElementsByClassName("current")[0].getElementsByTagName("td")[3].textContent = "0%";
         // } else document.getElementsByClassName("current")[0].getElementsByTagName("td")[3].textContent = Math.floor(100 / (realSeconds / fixSeconds)) + "%";
         const logLastTitle = workBlock.getElementsByTagName("thead")[0].getElementsByTagName("tr")[0].appendChild(document.createElement("th"));
-        const logLast = workBlock.getElementsByClassName("current")[0].appendChild(document.createElement("th"));
-        logLast.style.background = "#fff"
-        logLast.style.fontWeight = "unset";
+        const logLast = workBlock.getElementsByClassName("current")[0].appendChild(document.createElement("td"));
         logLast.align = "center";
         if (timeLeft > 0)
             logLastTitle.textContent = "Осталось залогировать";

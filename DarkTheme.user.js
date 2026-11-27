@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Dark/Light Theme Toggle for Work time report
 // @namespace    https://compassplus.com/
-// @version      26M11D26-v4
+// @version      26M11D27-v1
 // @description  Добавляет переключатель тёмной/светлой темы в правый верхний угол и запоминает выбор
 // @author       VKK
 // @match        https://helpdesk.compassluxe.com/pa-reports-new/report/
@@ -141,19 +141,22 @@
         /* --- Цвета календарной таблицы --- */
 
         /* Обычные рабочие ячейки: вход и выход */
-        html.theme-dark #report2 td.Work > div:nth-child(-n+2) {
+        html.theme-dark #report2 td.Work > div:nth-child(-n+2),
+        html.theme-dark #report td.Work > div:nth-child(-n+2) {
             background-color: #30343b !important;
             color: #d4d4d4 !important;
         }
         
         /* Рабочее время и расчётное время */
-        html.theme-dark #report2 td.Work > div:nth-child(n+3) {
+        html.theme-dark #report2 td.Work > div:nth-child(n+3),
+        html.theme-dark #report td.Work > div:nth-child(n+3) {
             background-color: #294333 !important;
             color: #d4e8d8 !important;
         }
         
         /* Выходные дни */
-        html.theme-dark #report2 td.Weekend > div {
+        html.theme-dark #report2 td.Weekend > div,
+        html.theme-dark #report td.Weekend > div {
             background-color: #4a3035 !important;
             color: #eadada !important;
         }
@@ -245,7 +248,7 @@
         host.id = 'dark-theme-host';
 
         host.appendChild(btn);
-        document.body.appendChild(host);
+        document.body.insertBefore(host, document.body.firstChild);
 
         updateLabel();
         return btn;
