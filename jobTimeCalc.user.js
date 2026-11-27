@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JobTimeCalc
 // @namespace    http://tampermonkey.net/
-// @version      26M11D25-v2
+// @version      26M11D27-v1
 // @description  Calculating time to end of work day
 // @author       VKK
 // @match        https://helpdesk.compassluxe.com/pa-reports-new/report/
@@ -925,10 +925,11 @@
             buttonGroup.appendChild(saveButton);
             form.appendChild(buttonGroup);
             dialog.appendChild(form);
+            dialog.id = "JTC_SettingsDialog";
 
-            const container = document.querySelector('body > div:last-child');
+            const container = document.querySelector('body > div:first-child');
             if (container) {
-                container.appendChild(dialog);
+                document.body.insertBefore(dialog, container);
             }
 
             return { dialog, dayRows, shortDayCheck, holidaysCheck, presetSelect };
@@ -938,88 +939,89 @@
         function addDialogStyles() {
             const style = document.createElement('style');
             style.textContent = `
-        @keyframes fadeInScale {
-            0% { opacity: 0; transform: scale(0.7); }
-            100% { opacity: 1; transform: scale(1); }
-        }
-
-        @keyframes fadeOutScale {
-            0% { opacity: 1; transform: scale(1); }
-            100% { opacity: 0; transform: scale(0.7); }
-        }
-
-        dialog {
-            padding: 20px;
-            border-radius: 8px;
-            border: 1px solid #6e0000;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-            font-family: Trebuchet MS, Tahoma, Verdana, Arial, sans-serif;
-            font-size: 11px;
-        }
-
-        dialog::backdrop {
-            background-color: rgba(0, 0, 0, 0);
-            transition: background-color 0.3s ease;
-        }
-
-        dialog[open]::backdrop {
-            background-color: rgba(0, 0, 0, 0.5);
-        }
-
-        dialog.dialog-show {
-            animation: fadeInScale 0.3s ease forwards;
-        }
-
-        dialog.dialog-hide {
-            animation: fadeOutScale 0.2s ease forwards !important;
-        }
-
-        #showDataDialog {
-            margin-left: 20px;
-            padding: 5px 15px;
-            font-size: 11px;
-            cursor: pointer;
-            border: 1px solid #6e0000;
-            background-color: #f0f0f0;
-            vertical-align: bottom;
-            transition: all 0.2s ease;
-        }
-
-        #showDataDialog:hover {
-            background-color: #e0e0e0;
-            transform: scale(1.05);
-        }
-
-        #showDataDialog:active {
-            transform: scale(0.95);
-        }
-
-        .dialog-form select {
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .dialog-form select:hover,
-        .dialog-form select:focus {
-            border-color: #6e0000;
-            box-shadow: 0 0 5px rgba(110, 0, 0, 0.3);
-            outline: none;
-        }
-
-        .dialog-form button {
-            transition: all 0.2s ease;
-            width: 100px;
-            box-sizing: border-box;
-            text-align: center;
-        }
-
-        .dialog-form button:hover {
-            transform: scale(1.05);
-        }
-
-        .dialog-form button:active {
-            transform: scale(0.95);
-        }
-        `;
+                @keyframes fadeInScale {
+                    0% { opacity: 0; transform: scale(0.7); }
+                    100% { opacity: 1; transform: scale(1); }
+                }
+        
+                @keyframes fadeOutScale {
+                    0% { opacity: 1; transform: scale(1); }
+                    100% { opacity: 0; transform: scale(0.7); }
+                }
+        
+                dialog {
+                    padding: 20px;
+                    border-radius: 8px;
+                    border: 1px solid #6e0000;
+                    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+                    font-family: Trebuchet MS, Tahoma, Verdana, Arial, sans-serif;
+                    font-size: 11px;
+                }
+        
+                dialog::backdrop {
+                    background-color: rgba(0, 0, 0, 0);
+                    transition: background-color 0.3s ease;
+                }
+        
+                dialog[open]::backdrop {
+                    background-color: rgba(0, 0, 0, 0.5);
+                }
+        
+                dialog.dialog-show {
+                    animation: fadeInScale 0.3s ease forwards;
+                }
+        
+                dialog.dialog-hide {
+                    animation: fadeOutScale 0.2s ease forwards !important;
+                }
+        
+                #showDataDialog {
+                    margin-left: 20px;
+                    padding: 5px 15px;
+                    font-size: 11px;
+                    cursor: pointer;
+                    border: 1px solid #6e0000;
+                    background-color: #f0f0f0;
+                    vertical-align: bottom;
+                    transition: all 0.2s ease;
+                }
+        
+                #showDataDialog:hover {
+                    background-color: #e0e0e0;
+                    transform: scale(1.05);
+                }
+        
+                #showDataDialog:active {
+                    transform: scale(0.95);
+                }
+        
+                .dialog-form select {
+                    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+                }
+        
+                .dialog-form select:hover,
+                .dialog-form select:focus {
+                    border-color: #6e0000;
+                    box-shadow: 0 0 5px rgba(110, 0, 0, 0.3);
+                    outline: none;
+                }
+        
+                .dialog-form button {
+                    transition: all 0.2s ease;
+                    width: 100px;
+                    box-sizing: border-box;
+                    text-align: center;
+                }
+        
+                .dialog-form button:hover {
+                    transform: scale(1.05);
+                }
+        
+                .dialog-form button:active {
+                    transform: scale(0.95);
+                }
+            `;
+            style.id = "JTC_SettingsStyle"
             document.head.appendChild(style);
         }
 
@@ -1059,17 +1061,40 @@
             });
         }
 
+        function isStyleExist() {
+            return document.getElementById("JTC_SettingsStyle") !== null;
+        }
+
+        function getCreatedDialog() {
+            const dialog = document.getElementById('JTC_SettingsDialog');
+            if (dialog === null) {
+                return null;
+            }
+            return dialog;
+        }
+
+        function openDialog(dialog) {
+            dialog.classList.add('dialog-show');
+            dialog.showModal();
+        }
+
         initialize();
 
         function initialize() {
             // Добавляем стили
-            addDialogStyles();
+            if (!isStyleExist()) {
+                addDialogStyles();
+            }
 
             // Создаем элементы диалога
-            const dialogRef = createDataDialog();
+            const dialogRef = getCreatedDialog();
+            if (dialogRef == null) {
+                // Инициализируем обработчики событий и открываем диалог
+                initDialogEvents(createDataDialog());
+            } else {
+                openDialog(dialogRef);
+            }
 
-            // Инициализируем обработчики событий и открываем диалог
-            initDialogEvents(dialogRef);
         }
     }
 
